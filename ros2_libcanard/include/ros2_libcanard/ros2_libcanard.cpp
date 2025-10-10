@@ -108,6 +108,7 @@ void Ros2Libcanard::handle_esc_status(const CanardRxTransfer &transfer,
     
     if(esc_count_ == NUM_ESC_)
     {
+        actual_rpm_msg_.header.stamp = this->now();
         // printf("Publishing actual rpm\n");
         voltage_msg_.data = msg.voltage;
         actual_rpm_pub_->publish(actual_rpm_msg_);
