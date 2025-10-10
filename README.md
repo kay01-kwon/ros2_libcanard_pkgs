@@ -102,7 +102,3 @@ Launch the node.
 ```
 ros2 launch ros2_libcanard esc_bringup.launch.py
 ```
-
-## Customized message type
-
-
