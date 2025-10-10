@@ -80,8 +80,6 @@ Ros2Libcanard::Ros2Libcanard()
 
 }
 
-
-
 Ros2Libcanard::~Ros2Libcanard()
 {
     
@@ -111,18 +109,11 @@ void Ros2Libcanard::handle_esc_status(const CanardRxTransfer &transfer,
     if(esc_count_ == NUM_ESC_)
     {
         // printf("Publishing actual rpm\n");
+        voltage_msg_.data = msg.voltage;
         actual_rpm_pub_->publish(actual_rpm_msg_);
-        
-        esc_count_ = 0;
-
+        voltage_pub_->publish(voltage_msg_);
         esc_cmd_pub_.broadcast(uavcan_cmd_msg_);
-        printf("Broadcasting cmd rpm\n");
-        printf("Cmd rpm: ");
-        for(int i = 0; i < NUM_ESC_; i++)
-        {
-            printf("%d ", uavcan_cmd_msg_.cmd.data[i]);
-            printf("\n");
-        }
+        esc_count_ = 0;
     }
 
 }
