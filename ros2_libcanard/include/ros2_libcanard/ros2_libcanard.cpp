@@ -95,7 +95,7 @@ void Ros2Libcanard::hexa_cmd_raw_callback(const ros2_libcanard_msgs::msg::HexaCm
 
     for(int i = 0; i < NUM_ESC_; i++)
     {
-        uavcan_cmd_msg_.cmd.data[i] = msg->rpm[i];
+        uavcan_cmd_msg_.cmd.data[i] = msg->cmd_raw[i];
     }
 }
 
