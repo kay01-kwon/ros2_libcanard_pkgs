@@ -66,10 +66,12 @@ Ros2Libcanard::Ros2Libcanard()
     // rclcpp::QoS qos_pub_(5);
     // rclcpp::QoS qos_sub_(5);
 
-    actual_rpm_pub_ = this->create_publisher<HexaActualRpm>("/uav/actual_rpm", rclcpp::SensorDataQoS());
-    voltage_pub_ = this->create_publisher<Float64>("voltage", rclcpp::SensorDataQoS());
+    actual_rpm_pub_ = this->create_publisher<HexaActualRpm>("/uav/actual_rpm", 
+        rclcpp::SensorDataQoS());
+    voltage_pub_ = this->create_publisher<Float64>("voltage", 
+        rclcpp::SensorDataQoS());
 
-    cmd_raw_sub_ = this->create_subscription<HexaCmdRaw>("/uav/cmd_raw", rclcpp::SensorDataQoS(),
+    cmd_raw_sub_ = this->create_subscription<HexaCmdRaw>("/uav/cmd_raw", 5,
         std::bind(&Ros2Libcanard::hexa_cmd_raw_callback, this, std::placeholders::_1));
 
     node_status_timer_ = this->create_wall_timer(1s, 
