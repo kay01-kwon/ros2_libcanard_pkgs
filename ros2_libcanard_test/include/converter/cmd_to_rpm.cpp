@@ -25,7 +25,7 @@ void CmdToRpmConverter::update_rc_input(const uint16_t* rc_in_channels)
 
     Vector4d control_input;
 
-    // control_input[0]: total thrust command
+    // control_input[0]: collective thrust command
     // control_input[1]: roll command
     // control_input[2]: pitch command
     // control_input[3]: yaw command
@@ -34,23 +34,27 @@ void CmdToRpmConverter::update_rc_input(const uint16_t* rc_in_channels)
         (rc_in_channels[2] - rc_in_min)
         /(double)(2*rc_in_delta)
         *(drone_param_.Tmax - drone_param_.Tmin)
-         + drone_param_.Tmin
+        *(double) num_rotors_
+        + drone_param_.Tmin 
+        *(double) num_rotors_
     ); // Throttle
+
     control_input(1) = static_cast<double>(
         (rc_in_channels[0] - rc_in_mid)
         /(double)(2*rc_in_delta)
         *2.0
-    );
+    );  // Roll
+
     control_input(2) = static_cast<double>(
         (rc_in_channels[1] - rc_in_mid)
         /(double)(2*rc_in_delta)
         *2.0
-    );
+    );  // Pitch
     control_input(3) = static_cast<double>(
         (rc_in_channels[3] - rc_in_mid)
         /(double)(2*rc_in_delta)
-        *2.0
-    );
+        *0.5
+    );  // Yaw
 
     if(drone_param_.rc_mode == RCMode::QUAD)
     {
@@ -58,8 +62,8 @@ void CmdToRpmConverter::update_rc_input(const uint16_t* rc_in_channels)
 
         for(int i = 0; i < 4; ++i)
         {
+            thrust_clamp(motor_thrusts(i));
             motor_rpms_(i) = std::sqrt(motor_thrusts(i) / drone_param_.motor_const);
-            rpm_clamp(motor_rpms_(i));
         }
         for(int i = 4; i < 6; ++i)
         {
@@ -72,8 +76,8 @@ void CmdToRpmConverter::update_rc_input(const uint16_t* rc_in_channels)
 
         for(int i = 0; i < 6; ++i)
         {
+            thrust_clamp(motor_thrusts(i));
             motor_rpms_(i) = std::sqrt(motor_thrusts(i) / drone_param_.motor_const);
-            rpm_clamp(motor_rpms_(i));
         }
     }
     else
@@ -105,6 +109,7 @@ void CmdToRpmConverter::allocate_matrix()
 
     if(drone_param_.rc_mode == RCMode::QUAD)
     {
+        num_rotors_ = 4;
         double cos_pi_4 = std::cos(M_PI / 4.0);
         double sin_pi_4 = std::sin(M_PI / 4.0);
 
@@ -141,6 +146,7 @@ void CmdToRpmConverter::allocate_matrix()
     }
     else if(drone_param_.rc_mode == RCMode::HEXA)
     {
+        num_rotors_ = 6;
         double cos_pi_3 = std::cos(M_PI / 3.0);
         double sin_pi_3 = std::sin(M_PI / 3.0);
 
@@ -186,15 +192,15 @@ void CmdToRpmConverter::allocate_matrix()
 
 }
 
-double CmdToRpmConverter::rpm_clamp(double &rpm)
+double CmdToRpmConverter::thrust_clamp(double &thrust)
 {
-    if ( rpm > MaxRpm)
+    if(thrust > drone_param_.Tmax)
     {
-        rpm = MaxRpm;
+        thrust = drone_param_.Tmax;
     }
-    else if ( rpm < MinRpm)
+    else if(thrust < drone_param_.Tmin)
     {
-        rpm = MinRpm;
+        thrust = drone_param_.Tmin;
     }
-    return rpm;
+    return thrust;
 }
