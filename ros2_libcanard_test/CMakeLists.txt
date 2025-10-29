@@ -4,8 +4,8 @@ project(ros2_libcanard_test)
 set(CMAKE_CXX_STANDARD 17)
 
 set(esc_test_src
-  include/utils/rc_converter.cpp
-  include/utils/single_mode.cpp
+  include/converter/rc_converter.cpp
+  include/converter/single_mode.cpp
   include/node/esc_test.cpp
 )
 

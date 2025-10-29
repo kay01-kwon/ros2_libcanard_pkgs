@@ -5,7 +5,7 @@
 #include <chrono>
 #include <memory>
 
-#include "utils/rc_converter.hpp"
+#include "converter/rc_converter.hpp"
 
 #include <ros2_libcanard_msgs/msg/quad_cmd_raw.hpp>
 #include <ros2_libcanard_msgs/msg/hexa_cmd_raw.hpp>

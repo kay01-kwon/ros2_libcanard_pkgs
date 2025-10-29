@@ -2,8 +2,8 @@
 #define RC_CONVERTER_HPP
 
 #include <iostream>
-#include "rc_state_def.hpp"
-#include "esc_def.hpp"
+#include "utils/rc_state_def.hpp"
+#include "utils/esc_def.hpp"
 
 enum class RCMode
 {
