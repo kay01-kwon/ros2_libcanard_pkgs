@@ -14,17 +14,14 @@ ESCTestNode::ESCTestNode()
     switch(rc_mode_)
     {
         case RCMode::SINGLE:
-            RCLCPP_INFO(this->get_logger(), "RC Mode: SINGLE");
             quad_cmd_publisher_ = nullptr;
             hexa_cmd_publisher_ = this->create_publisher<HexaCmdRaw>("/uav/cmd_raw", 5);
             break;
         case RCMode::QUAD:
-            RCLCPP_INFO(this->get_logger(), "RC Mode: QUAD");
             quad_cmd_publisher_ = this->create_publisher<QuadCmdRaw>("/uav/cmd_raw", 5);
             hexa_cmd_publisher_ = nullptr;
             break;
         case RCMode::HEXA:
-            RCLCPP_INFO(this->get_logger(), "RC Mode: HEXA");
             quad_cmd_publisher_ = nullptr;
             hexa_cmd_publisher_ = this->create_publisher<HexaCmdRaw>("/uav/cmd_raw", 5);
             break;
@@ -95,6 +92,7 @@ void ESCTestNode::timer_callback()
 
 void ESCTestNode::configure()
 {
+    DroneParam drone_param;
     std::string rc_mode_name;
 
     this->declare_parameter("rc_mode", "SINGLE");
@@ -111,10 +109,49 @@ void ESCTestNode::configure()
         rc_mode_ = RCMode::SINGLE;
     }
 
+    this->declare_parameter("motor_const", drone_param.motor_const);
+    this->get_parameter("motor_const", drone_param.motor_const);
+
+    this->declare_parameter("moment_const", drone_param.moment_const);
+    this->get_parameter("moment_const", drone_param.moment_const);
+
+    this->declare_parameter("arm_length", drone_param.arm_length);
+    this->get_parameter("arm_length", drone_param.arm_length);
+
+    this->declare_parameter("Tmax", drone_param.Tmax);
+    this->get_parameter("Tmax", drone_param.Tmax);
+
+    this->declare_parameter("Tmin", drone_param.Tmin);
+    this->get_parameter("Tmin", drone_param.Tmin);
+
+    drone_param.rc_mode = rc_mode_;
+
 
     if (rc_converter_ != nullptr) {
         delete rc_converter_;
     }
 
-    rc_converter_ = RCConverter::create_RCConverter(rc_mode_);
+    rc_converter_ = RCConverter::create_RCConverter(drone_param);
+
+    print_status(drone_param);
+}
+
+void ESCTestNode::print_status(const DroneParam& drone_param)
+{
+    RCLCPP_INFO(this->get_logger(), "---- Drone Parameters ----");
+
+    if(drone_param.rc_mode == RCMode::SINGLE) {
+        RCLCPP_INFO(this->get_logger(), "RC Mode: SINGLE");
+    } else if (drone_param.rc_mode == RCMode::QUAD) {
+        RCLCPP_INFO(this->get_logger(), "RC Mode: QUAD");
+    } else if (drone_param.rc_mode == RCMode::HEXA) {
+        RCLCPP_INFO(this->get_logger(), "RC Mode: HEXA");
+    }
+
+    RCLCPP_INFO(this->get_logger(), "Motor Const: %.8e", drone_param.motor_const);
+    RCLCPP_INFO(this->get_logger(), "Moment Const: %f", drone_param.moment_const);
+    RCLCPP_INFO(this->get_logger(), "Arm Length: %f", drone_param.arm_length);
+    RCLCPP_INFO(this->get_logger(), "Tmax: %f", drone_param.Tmax);
+    RCLCPP_INFO(this->get_logger(), "Tmin: %f", drone_param.Tmin);
+    RCLCPP_INFO(this->get_logger(), "--------------------------");
 }

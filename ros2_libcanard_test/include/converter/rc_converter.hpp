@@ -5,14 +5,6 @@
 #include "utils/rc_state_def.hpp"
 #include "utils/esc_def.hpp"
 
-enum class RCMode
-{
-    SINGLE,
-    QUAD,
-    HEXA
-};
-
-
 // Factory method to create RCConverter instances
 class RCConverter
 {
@@ -20,7 +12,7 @@ class RCConverter
 
     RCConverter() = default;
 
-    static RCConverter* create_RCConverter(RCMode mode);
+    static RCConverter* create_RCConverter(DroneParam drone_param);
 
     virtual ~RCConverter();
 

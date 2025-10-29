@@ -6,6 +6,9 @@ set(CMAKE_CXX_STANDARD 17)
 set(esc_test_src
   include/converter/rc_converter.cpp
   include/converter/single_mode.cpp
+  include/converter/quad_mode.cpp
+  include/converter/hexa_mode.cpp
+  include/converter/cmd_to_rpm.cpp
   include/node/esc_test.cpp
 )
 
@@ -47,6 +50,11 @@ target_link_libraries(
 install(
   TARGETS esc_test_node
   DESTINATION lib/${PROJECT_NAME}
+)
+
+install(
+  DIRECTORY launch config
+  DESTINATION share/${PROJECT_NAME}
 )
 
 ament_package()

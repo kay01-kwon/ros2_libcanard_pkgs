@@ -6,6 +6,7 @@
 #include <memory>
 
 #include "converter/rc_converter.hpp"
+#include "converter/cmd_to_rpm.hpp"
 
 #include <ros2_libcanard_msgs/msg/quad_cmd_raw.hpp>
 #include <ros2_libcanard_msgs/msg/hexa_cmd_raw.hpp>
@@ -31,6 +32,8 @@ class ESCTestNode : public rclcpp::Node
     void timer_callback();
 
     void configure();
+
+    void print_status(const DroneParam& drone_param);
 
     rclcpp::Subscription<RCIn>::SharedPtr rc_subscription_;
 
