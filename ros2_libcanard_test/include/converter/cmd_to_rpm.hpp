@@ -22,7 +22,7 @@ class CmdToRpmConverter
     
     void allocate_matrix();
 
-    double rpm_clamp(double &rpm);
+    double thrust_clamp(double &thrust);
 
     DroneParam drone_param_;
 
@@ -30,6 +30,8 @@ class CmdToRpmConverter
 
     Matrix4x4d quad_allocation_matrix_;
     Matrix6x4d hexa_allocation_matrix_;
+
+    int num_rotors_{6};
 
 };
 
