@@ -41,18 +41,18 @@ void CmdToRpmConverter::update_rc_input(const uint16_t* rc_in_channels)
 
     control_input(1) = static_cast<double>(
         (rc_in_channels[0] - rc_in_mid)
-        /(double)(2*rc_in_delta)
+        /(double)(rc_in_delta)
         *2.0
     );  // Roll
 
     control_input(2) = static_cast<double>(
         (rc_in_channels[1] - rc_in_mid)
-        /(double)(2*rc_in_delta)
+        /(double)(rc_in_delta)
         *2.0
     );  // Pitch
     control_input(3) = static_cast<double>(
         (rc_in_channels[3] - rc_in_mid)
-        /(double)(2*rc_in_delta)
+        /(double)(rc_in_delta)
         *0.5
     );  // Yaw
 
