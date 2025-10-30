@@ -88,10 +88,7 @@ private:
     Float64 voltage_msg_;
 
     rclcpp::Subscription<HexaCmdRaw>::SharedPtr cmd_raw_sub_;
-
-    rclcpp::TimerBase::SharedPtr node_status_timer_;
     rclcpp::TimerBase::SharedPtr canard_process_timer_;
-
 
     size_t esc_count_{0};
 };
