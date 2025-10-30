@@ -31,10 +31,7 @@ public:
 
     ~Ros2Libcanard();
 
-
-
 private:
-
 
     void process_canard();
 

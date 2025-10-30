@@ -71,14 +71,12 @@ Ros2Libcanard::Ros2Libcanard()
     voltage_pub_ = this->create_publisher<Float64>("voltage", 
         rclcpp::SensorDataQoS());
 
-    cmd_raw_sub_ = this->create_subscription<HexaCmdRaw>("/uav/cmd_raw", 5,
+    cmd_raw_sub_ = this->create_subscription<HexaCmdRaw>("/uav/cmd_raw", 1,
         std::bind(&Ros2Libcanard::hexa_cmd_raw_callback, this, std::placeholders::_1));
 
-    node_status_timer_ = this->create_wall_timer(1s, 
-        std::bind(&Ros2Libcanard::send_NodeStatus, this));
-    
-    canard_process_timer_ = this->create_wall_timer(1ms,
+    canard_process_timer_ = this->create_wall_timer(0.1ms,
         std::bind(&Ros2Libcanard::process_canard, this));
+
 
 }
 
@@ -99,13 +97,16 @@ void Ros2Libcanard::hexa_cmd_raw_callback(const ros2_libcanard_msgs::msg::HexaCm
     {
         uavcan_cmd_msg_.cmd.data[i] = msg->cmd_raw[i];
     }
+    esc_cmd_pub_.broadcast(uavcan_cmd_msg_);
 }
 
 void Ros2Libcanard::handle_esc_status(const CanardRxTransfer &transfer,
                            const uavcan_equipment_esc_Status &msg)
 {
     actual_rpm_msg_.rpm[msg.esc_index] = msg.rpm;
-    
+
+    // RCLCPP_INFO(this->get_logger(),"Handle ESC status");
+
     esc_count_++;
     
     if(esc_count_ == NUM_ESC_)
@@ -115,10 +116,8 @@ void Ros2Libcanard::handle_esc_status(const CanardRxTransfer &transfer,
         voltage_msg_.data = msg.voltage;
         actual_rpm_pub_->publish(actual_rpm_msg_);
         voltage_pub_->publish(voltage_msg_);
-        esc_cmd_pub_.broadcast(uavcan_cmd_msg_);
         esc_count_ = 0;
     }
-
 }
 
 void Ros2Libcanard::handle_getNodeInfo(const CanardRxTransfer& transfer,
@@ -140,5 +139,4 @@ void Ros2Libcanard::send_NodeStatus()
     uavcan_node_status_msg_.sub_mode = 0;
     uavcan_node_status_msg_.uptime_sec = millis32() / 1000UL;
     node_status_pub_.broadcast(uavcan_node_status_msg_);
-
 }
