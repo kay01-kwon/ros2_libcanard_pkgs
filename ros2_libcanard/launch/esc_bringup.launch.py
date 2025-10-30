@@ -9,8 +9,8 @@ def generate_launch_description():
         output='screen',
         emulate_tty=True,
         parameters=[
-            {"interface_name": "slcan0"},
-            {"num_esc": 1}
+            {"interface_name": "can0"},
+            {"num_esc": 6}
         ]
     )
 
