@@ -27,11 +27,28 @@ struct RCState
     Vector16u16 rc_in_channels;     // Raw RC input channels
 };
 
-enum class RCMode
+enum class RCMode{
+    DISARMED,
+    ARMED,
+    KILL
+};
+
+enum class DroneModel
 {
     SINGLE,
     QUAD,
     HEXA
+};
+
+enum class ThreePosSwitch{
+    LOW,
+    MID,
+    HIGH
+};
+
+enum class TwoPosSwitch{
+    LOW,
+    HIGH
 };
 
 struct DroneParam
@@ -39,7 +56,7 @@ struct DroneParam
     double motor_const{1.465e-07}; // motor constant (thrust = motor_const * rpm^2)
     double moment_const{0.01569}; // moment constant (moment = moment_const * thrust)
     double arm_length{0.265}; // distance from motor to center of drone
-    RCMode rc_mode{RCMode::HEXA}; // RC mode (SINGLE, QUAD, HEXA)
+    DroneModel drone_model{DroneModel::HEXA}; // Drone model (SINGLE, QUAD, HEXA)
     double Tmax{9.376}; // maximum thrust (N)
     double Tmin{0.586}; // minimum thrust (N)
 };

@@ -47,7 +47,11 @@ class ESCTestNode : public rclcpp::Node
     QuadCmdRaw quad_cmd_;
     HexaCmdRaw hexa_cmd_;
 
-    RCMode rc_mode_;
+    DroneModel drone_model_;
+
+    RCMode rc_mode_{RCMode::DISARMED};
+    RCMode rc_mode_prev_{RCMode::DISARMED};
+    
 };
 
 #endif // ESC_TEST_HPP

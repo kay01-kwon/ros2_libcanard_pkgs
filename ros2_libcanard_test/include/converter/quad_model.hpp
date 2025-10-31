@@ -1,21 +1,23 @@
-#ifndef QUAD_MODE_HPP
-#define QUAD_MODE_HPP
+#ifndef QUAD_MODEL_HPP
+#define QUAD_MODEL_HPP
 
 #include "rc_converter.hpp"
 #include "cmd_to_rpm.hpp"
 
-class QuadModeConverter : public RCConverter 
+class QuadModelConverter : public RCConverter 
 {
 public:
-    QuadModeConverter();
+    QuadModelConverter();
 
-    QuadModeConverter(DroneParam drone_param);
+    QuadModelConverter(DroneParam drone_param);
     
-    ~QuadModeConverter();
+    ~QuadModelConverter();
     
     void set_rc_input(const uint16_t * rc_in_channels) override;
     
     Vector6i16 get_motor_commands() override;
+
+    RCMode get_rc_mode() const override;
 
     private:
 
@@ -24,4 +26,4 @@ public:
 
 
 
-#endif // QUAD_MODE_HPP
+#endif // QUAD_MODEL_HPP

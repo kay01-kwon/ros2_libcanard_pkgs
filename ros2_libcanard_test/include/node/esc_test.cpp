@@ -11,17 +11,17 @@ ESCTestNode::ESCTestNode()
         std::bind(&ESCTestNode::rc_callback, this, std::placeholders::_1)
     );
 
-    switch(rc_mode_)
+    switch(drone_model_)
     {
-        case RCMode::SINGLE:
+        case DroneModel::SINGLE:
             quad_cmd_publisher_ = nullptr;
             hexa_cmd_publisher_ = this->create_publisher<HexaCmdRaw>("/uav/cmd_raw", 5);
             break;
-        case RCMode::QUAD:
+        case DroneModel::QUAD:
             quad_cmd_publisher_ = this->create_publisher<QuadCmdRaw>("/uav/cmd_raw", 5);
             hexa_cmd_publisher_ = nullptr;
             break;
-        case RCMode::HEXA:
+        case DroneModel::HEXA:
             quad_cmd_publisher_ = nullptr;
             hexa_cmd_publisher_ = this->create_publisher<HexaCmdRaw>("/uav/cmd_raw", 5);
             break;
@@ -47,22 +47,43 @@ void ESCTestNode::rc_callback(const RCIn::SharedPtr msg)
 {
     const uint16_t* rc_in_channels = msg->channels.data();
     rc_converter_->set_rc_input(rc_in_channels);
+
+    rc_mode_ = rc_converter_->get_rc_mode();
+
+    if(rc_mode_ != rc_mode_prev_) {
+
+        switch(rc_mode_)
+        {
+            case RCMode::DISARMED:
+                RCLCPP_INFO(this->get_logger(), "RC Mode: DISARMED");
+                break;
+            case RCMode::ARMED:
+                RCLCPP_INFO(this->get_logger(), "RC Mode: ARMED");
+                break;
+            case RCMode::KILL:
+                RCLCPP_INFO(this->get_logger(), "RC Mode: KILL");
+                break;
+            default:
+                RCLCPP_WARN(this->get_logger(), "Unknown RC Mode");
+                break;
+        }
+    }
     
     Vector6i16 motor_commands = rc_converter_->get_motor_commands();
     
-    if (rc_mode_ == RCMode::SINGLE) {
+    if (drone_model_ == DroneModel::SINGLE) {
         if (hexa_cmd_publisher_ != nullptr) {
             for (size_t i = 0; i < 6; ++i) {
                 hexa_cmd_.cmd_raw[i] = motor_commands(i);
             }
         }
-    } else if (rc_mode_ == RCMode::QUAD) {
+    } else if (drone_model_ == DroneModel::QUAD) {
         if (quad_cmd_publisher_ != nullptr) {
             for (size_t i = 0; i < 4; ++i) {
                 quad_cmd_.cmd_raw[i] = motor_commands(i);
             }
         }
-    } else if (rc_mode_ == RCMode::HEXA) {
+    } else if (drone_model_ == DroneModel::HEXA) {
         if (hexa_cmd_publisher_ != nullptr) {
             for (size_t i = 0; i < 6; ++i) {
                 hexa_cmd_.cmd_raw[i] = motor_commands(i);
@@ -70,19 +91,20 @@ void ESCTestNode::rc_callback(const RCIn::SharedPtr msg)
         }
     }
 
+    rc_mode_prev_ = rc_mode_;
 }
 
 void ESCTestNode::timer_callback()
 {
-    if (rc_mode_ == RCMode::SINGLE) {
+    if (drone_model_ == DroneModel::SINGLE) {
         if (hexa_cmd_publisher_ != nullptr) {
             hexa_cmd_publisher_->publish(hexa_cmd_);
         }
-    } else if (rc_mode_ == RCMode::QUAD) {
+    } else if (drone_model_ == DroneModel::QUAD) {
         if (quad_cmd_publisher_ != nullptr) {
             quad_cmd_publisher_->publish(quad_cmd_);
         }
-    } else if (rc_mode_ == RCMode::HEXA) {
+    } else if (drone_model_ == DroneModel::HEXA) {
         if (hexa_cmd_publisher_ != nullptr) {
             hexa_cmd_publisher_->publish(hexa_cmd_);
         }
@@ -95,18 +117,18 @@ void ESCTestNode::configure()
     DroneParam drone_param;
     std::string rc_mode_name;
 
-    this->declare_parameter("rc_mode", "SINGLE");
-    this->get_parameter("rc_mode", rc_mode_name);
+    this->declare_parameter("drone_model", "SINGLE");
+    this->get_parameter("drone_model", rc_mode_name);
 
     if(rc_mode_name == "SINGLE") {
-        rc_mode_ = RCMode::SINGLE;
+        drone_model_ = DroneModel::SINGLE;
     } else if (rc_mode_name == "QUAD") {
-        rc_mode_ = RCMode::QUAD;
+        drone_model_ = DroneModel::QUAD;
     } else if (rc_mode_name == "HEXA") {
-        rc_mode_ = RCMode::HEXA;
+        drone_model_ = DroneModel::HEXA;
     } else {
-        RCLCPP_WARN(this->get_logger(), "Invalid rc_mode parameter, defaulting to SINGLE");
-        rc_mode_ = RCMode::SINGLE;
+        RCLCPP_WARN(this->get_logger(), "Invalid drone_model parameter, defaulting to SINGLE");
+        drone_model_ = DroneModel::SINGLE;
     }
 
     this->declare_parameter("motor_const", drone_param.motor_const);
@@ -124,7 +146,7 @@ void ESCTestNode::configure()
     this->declare_parameter("Tmin", drone_param.Tmin);
     this->get_parameter("Tmin", drone_param.Tmin);
 
-    drone_param.rc_mode = rc_mode_;
+    drone_param.drone_model = drone_model_;
 
 
     if (rc_converter_ != nullptr) {
@@ -140,12 +162,12 @@ void ESCTestNode::print_status(const DroneParam& drone_param)
 {
     RCLCPP_INFO(this->get_logger(), "---- Drone Parameters ----");
 
-    if(drone_param.rc_mode == RCMode::SINGLE) {
-        RCLCPP_INFO(this->get_logger(), "RC Mode: SINGLE");
-    } else if (drone_param.rc_mode == RCMode::QUAD) {
-        RCLCPP_INFO(this->get_logger(), "RC Mode: QUAD");
-    } else if (drone_param.rc_mode == RCMode::HEXA) {
-        RCLCPP_INFO(this->get_logger(), "RC Mode: HEXA");
+    if(drone_param.drone_model == DroneModel::SINGLE) {
+        RCLCPP_INFO(this->get_logger(), "Drone Mode: SINGLE");
+    } else if (drone_param.drone_model == DroneModel::QUAD) {
+        RCLCPP_INFO(this->get_logger(), "Drone Model: QUAD");
+    } else if (drone_param.drone_model == DroneModel::HEXA) {
+        RCLCPP_INFO(this->get_logger(), "Drone Model: HEXA");
     }
 
     RCLCPP_INFO(this->get_logger(), "Motor Const: %.8e", drone_param.motor_const);
