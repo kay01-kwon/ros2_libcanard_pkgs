@@ -77,7 +77,7 @@ because it depends on mavros_msgs.
 colcon build --packages-select ros2_libcanard_test --symlink-install
 ```
 
-## CAN network setup
+## 2. CAN network setup
 
 Make the can_setup.bash file executable.
 
@@ -95,7 +95,7 @@ sudo chmod +x setup_slcan.bash
 ```
 
 
-## Launch the launch.py
+## 3. Launch the launch.py
 
 slcan_single_esc_bringup.launch.py file (Singe esc test):
 
@@ -122,4 +122,40 @@ esc_bringup.launch.py file (Hexa copter):
 
 ```
 ros2 launch ros2_libcanard esc_bringup.launch.py
+```
+
+## 4. Test
+
+1. Single esc test
+
+Terminal 1
+```
+ros2 launch px4_launch px4.launch
+```
+
+Terminal 2
+```
+ros2 run px4_launch px4_client_node
+```
+
+Terminal 2
+```
+ros2 launch ros2_libcanard_test single_esc_test.launch.py
+```
+
+2. Hexa test
+
+Terminal 1
+```
+ros2 launch px4_launch px4.launch
+```
+
+Terminal 2
+```
+ros2 run px4_launch px4_client_node
+```
+
+Terminal 2
+```
+ros2 launch ros2_libcanard_test esc_test.launch.py
 ```
