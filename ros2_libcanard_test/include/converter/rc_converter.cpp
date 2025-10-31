@@ -1,7 +1,7 @@
 #include "rc_converter.hpp"
-#include "single_mode.hpp"
-#include "quad_mode.hpp"
-#include "hexa_mode.hpp"
+#include "single_model.hpp"
+#include "quad_model.hpp"
+#include "hexa_model.hpp"
 
 RCConverter::~RCConverter()
 {
@@ -10,19 +10,19 @@ RCConverter::~RCConverter()
 
 RCConverter* RCConverter::create_RCConverter(DroneParam drone_param)
 {
-    RCMode mode = drone_param.rc_mode;
+    DroneModel model = drone_param.drone_model;
 
-    switch (mode)
+    switch (model)
     {
-        case RCMode::SINGLE:
-            // Return an instance of SingleModeConverter
-            return new SingleModeConverter();
-        case RCMode::QUAD:
-            // Return an instance of QuadModeConverter
-            return new QuadModeConverter(drone_param);
-        case RCMode::HEXA:
-            // Return an instance of HexaModeConverter
-            return new HexaModeConverter(drone_param);
+        case DroneModel::SINGLE:
+            // Return an instance of SingleModelConverter
+            return new SingleModelConverter();
+        case DroneModel::QUAD:
+            // Return an instance of QuadModelConverter
+            return new QuadModelConverter(drone_param);
+        case DroneModel::HEXA:
+            // Return an instance of HexaModelConverter
+            return new HexaModelConverter(drone_param);
         default:
             std::cerr << "Invalid RC Mode!" << std::endl;
             return nullptr;

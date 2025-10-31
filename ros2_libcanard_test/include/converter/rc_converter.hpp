@@ -21,6 +21,8 @@ class RCConverter
 
     virtual Vector6i16 get_motor_commands() = 0;
 
+    virtual RCMode get_rc_mode() const = 0;
+
     protected:
 
     Vector6i16 motor_commands_;

@@ -5,10 +5,11 @@ set(CMAKE_CXX_STANDARD 17)
 
 set(esc_test_src
   include/converter/rc_converter.cpp
-  include/converter/single_mode.cpp
-  include/converter/quad_mode.cpp
-  include/converter/hexa_mode.cpp
+  include/converter/single_model.cpp
+  include/converter/quad_model.cpp
+  include/converter/hexa_model.cpp
   include/converter/cmd_to_rpm.cpp
+  include/mode/rc_mode_checker.cpp
   include/node/esc_test.cpp
 )
 

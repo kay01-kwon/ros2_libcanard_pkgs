@@ -8,14 +8,26 @@ CmdToRpmConverter::CmdToRpmConverter()
 CmdToRpmConverter::CmdToRpmConverter(const DroneParam& drone_param)
 :drone_param_(drone_param)
 {
-    // Constructor implementation based on RCMode
+    // Constructor implementation based on DroneModel
     // (Details would depend on specific requirements)
+    
+    if(rc_mode_checker_ == nullptr)
+    {
+        rc_mode_checker_ = new RCModeChecker();
+    }
+
     allocate_matrix();
+
 }
 
 CmdToRpmConverter::~CmdToRpmConverter()
 {
     // Destructor implementation (if needed)
+    if(rc_mode_checker_ != nullptr)
+    {
+        delete rc_mode_checker_;
+        rc_mode_checker_ = nullptr;
+    }
 }
 
 void CmdToRpmConverter::update_rc_input(const uint16_t* rc_in_channels)
@@ -23,8 +35,19 @@ void CmdToRpmConverter::update_rc_input(const uint16_t* rc_in_channels)
     // Update motor_commands_ based on rc_in_channels
     // (Details would depend on specific requirements)
 
-    Vector4d control_input;
+    current_rc_mode_ = rc_mode_checker_->get_rc_mode(rc_in_channels);
 
+    if(current_rc_mode_!= RCMode::ARMED)
+    {
+        // If not armed, set all motor RPMs to zero
+        for(int i = 0; i < 6; ++i)
+        {
+            motor_rpms_(i) = 0.0;
+        }
+        return;
+    }
+
+    Vector4d control_input;
     // control_input[0]: collective thrust command
     // control_input[1]: roll command
     // control_input[2]: pitch command
@@ -56,7 +79,7 @@ void CmdToRpmConverter::update_rc_input(const uint16_t* rc_in_channels)
         *0.5
     );  // Yaw
 
-    if(drone_param_.rc_mode == RCMode::QUAD)
+    if(drone_param_.drone_model == DroneModel::QUAD)
     {
         Vector4d motor_thrusts = quad_allocation_matrix_ * control_input;
 
@@ -70,7 +93,7 @@ void CmdToRpmConverter::update_rc_input(const uint16_t* rc_in_channels)
             motor_rpms_(i) = 0.0;
         }
     }
-    else if(drone_param_.rc_mode == RCMode::HEXA)
+    else if(drone_param_.drone_model == DroneModel::HEXA)
     {
         Vector6d motor_thrusts = hexa_allocation_matrix_ * control_input;
 
@@ -98,6 +121,11 @@ Vector6i16 CmdToRpmConverter::get_motor_rpms() const
     return motor_rpms;
 }
 
+RCMode CmdToRpmConverter::get_current_rc_mode() const
+{
+    return current_rc_mode_;
+}
+
 void CmdToRpmConverter::allocate_matrix()
 {
     // Allocate and initialize quad_allocation_matrix_ based on drone_param
@@ -107,7 +135,7 @@ void CmdToRpmConverter::allocate_matrix()
     double km = drone_param_.moment_const;
 
 
-    if(drone_param_.rc_mode == RCMode::QUAD)
+    if(drone_param_.drone_model == DroneModel::QUAD)
     {
         num_rotors_ = 4;
         double cos_pi_4 = std::cos(M_PI / 4.0);
@@ -144,7 +172,7 @@ void CmdToRpmConverter::allocate_matrix()
         }
         quad_allocation_matrix_ = svd.matrixV() * S_inv * svd.matrixU().transpose();
     }
-    else if(drone_param_.rc_mode == RCMode::HEXA)
+    else if(drone_param_.drone_model == DroneModel::HEXA)
     {
         num_rotors_ = 6;
         double cos_pi_3 = std::cos(M_PI / 3.0);
