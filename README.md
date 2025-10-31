@@ -1,12 +1,16 @@
 # ros2_libcanard
 
-## How to build
+## 1. Install
 
-
-Navigate to ~/ros2_ws
 
 ```
-cd ~/ros2_ws
+mkdir -p ~/esc_ws/src
+```
+
+Navigate to ~/esc_ws/src
+
+```
+cd ~/esc_ws/src
 ```
 
 Download the ros2_libcanard pkgs
@@ -56,30 +60,44 @@ int16[6] rpm
 
 Build the ros2_libcanard
 ```
-colcon build --packages-select ros2_libcanard
+colcon build --packages-select ros2_libcanard --symlink-install
 ```
 
 ```
 source ~/ros2_ws/install/setup.bash
 ```
 
-## How to execute the node
+Build ros2_libcanard_test
+
+Make sure that you have already installed mavros pkg,
+
+because it depends on mavros_msgs.
+
+```
+colcon build --packages-select ros2_libcanard_test --symlink-install
+```
+
+## CAN network setup
 
 Make the can_setup.bash file executable.
 
-For Jetson
+For Jetson with can transciever
+
+Make the bash file executable.
+
 ```
 sudo chmod +x setup_can.bash
 ```
 
-
-For laptop
+For slcan sincle esc
 ```
 sudo chmod +x setup_slcan.bash
 ```
 
-Configure the esc_bringup.launch.py
-Line 11 ~ 14
+
+## Launch the launch.py
+
+slcan_single_esc_bringup.launch.py file (Singe esc test):
 
 ```
         parameters=[
@@ -88,7 +106,11 @@ Line 11 ~ 14
         ]
 ```
 
-For hexacopter and jetson...
+```
+ros2 launch ros2_libcanard slcan_single_esc_bringup.launch.py
+```
+
+esc_bringup.launch.py file (Hexa copter):
 
 ```
         parameters=[
@@ -97,7 +119,6 @@ For hexacopter and jetson...
         ]
 ```
 
-Launch the node.
 
 ```
 ros2 launch ros2_libcanard esc_bringup.launch.py
