@@ -13,16 +13,34 @@
 
 #include <rclcpp/rclcpp.hpp>
 
+#include "ros2_libcanard_msgs/msg/single_actual_rpm.hpp"
+#include "ros2_libcanard_msgs/msg/single_cmd_raw.hpp"
+
+#include "ros2_libcanard_msgs/msg/quad_actual_rpm.hpp"
+#include "ros2_libcanard_msgs/msg/quad_cmd_raw.hpp"
+
 #include "ros2_libcanard_msgs/msg/hexa_actual_rpm.hpp"
 #include "ros2_libcanard_msgs/msg/hexa_cmd_raw.hpp"
 #include "std_msgs/msg/float64.hpp"
 
 using namespace std::chrono_literals;
 
+using ros2_libcanard_msgs::msg::SingleActualRpm;
+using ros2_libcanard_msgs::msg::SingleCmdRaw;
+
+using ros2_libcanard_msgs::msg::QuadActualRpm;
+using ros2_libcanard_msgs::msg::QuadCmdRaw;
+
 using ros2_libcanard_msgs::msg::HexaActualRpm;
 using ros2_libcanard_msgs::msg::HexaCmdRaw;
 using std_msgs::msg::Float64;
 
+enum class UavType
+{
+    SINGLE,
+    QUAD,
+    HEXA
+};
 
 class Ros2Libcanard : public rclcpp::Node
 {
@@ -34,6 +52,10 @@ public:
 private:
 
     void process_canard();
+
+    void single_cmd_raw_callback(const ros2_libcanard_msgs::msg::SingleCmdRaw::SharedPtr msg);
+
+    void quad_cmd_raw_callback(const ros2_libcanard_msgs::msg::QuadCmdRaw::SharedPtr msg);
 
     void hexa_cmd_raw_callback(const ros2_libcanard_msgs::msg::HexaCmdRaw::SharedPtr msg);
 
@@ -81,16 +103,25 @@ private:
     uavcan_equipment_esc_RawCommand uavcan_cmd_msg_;
     uavcan_protocol_NodeStatus uavcan_node_status_msg_;
     
-    rclcpp::Publisher<HexaActualRpm>::SharedPtr actual_rpm_pub_;
-    rclcpp::Publisher<Float64>::SharedPtr voltage_pub_;
-    
-    HexaActualRpm actual_rpm_msg_;
-    Float64 voltage_msg_;
 
-    rclcpp::Subscription<HexaCmdRaw>::SharedPtr cmd_raw_sub_;
-    rclcpp::TimerBase::SharedPtr canard_process_timer_;
+    rclcpp::Publisher<SingleActualRpm>::SharedPtr single_actual_rpm_pub_{nullptr};
+    rclcpp::Publisher<QuadActualRpm>::SharedPtr quad_actual_rpm_pub_{nullptr};
+    rclcpp::Publisher<HexaActualRpm>::SharedPtr hexa_actual_rpm_pub_{nullptr};
+    rclcpp::Publisher<Float64>::SharedPtr voltage_pub_{nullptr};
+    
+    SingleActualRpm single_actual_rpm_msg_;
+    QuadActualRpm quad_actual_rpm_msg_;
+    HexaActualRpm hexa_actual_rpm_msg_;
+    Float64 voltage_msg_;
+    
+    rclcpp::Subscription<SingleCmdRaw>::SharedPtr single_cmd_raw_sub_{nullptr};
+    rclcpp::Subscription<QuadCmdRaw>::SharedPtr quad_cmd_raw_sub_{nullptr};
+    rclcpp::Subscription<HexaCmdRaw>::SharedPtr hexa_cmd_raw_sub_{nullptr};
+    rclcpp::TimerBase::SharedPtr canard_process_timer_{nullptr};
 
     size_t esc_count_{0};
+
+    UavType uav_type_{UavType::SINGLE};
 };
 
 
