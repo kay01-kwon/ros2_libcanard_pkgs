@@ -63,16 +63,40 @@ Ros2Libcanard::Ros2Libcanard()
     esc_cmd_pub_.broadcast(uavcan_cmd_msg_);
 
 
-    // rclcpp::QoS qos_pub_(5);
-    // rclcpp::QoS qos_sub_(5);
+    if(NUM_ESC_ == 1)
+    {
+        single_actual_rpm_pub_ = this->create_publisher<SingleActualRpm>("/uav/actual_rpm", 
+            rclcpp::SensorDataQoS());
+        single_cmd_raw_sub_ = this->create_subscription<SingleCmdRaw>("/uav/cmd_raw", 1,
+            std::bind(&Ros2Libcanard::single_cmd_raw_callback, this, std::placeholders::_1));
+        
+        uav_type_ = UavType::SINGLE;
+    }
+    else if(NUM_ESC_ == 4)
+    {
+        quad_actual_rpm_pub_ = this->create_publisher<QuadActualRpm>("/uav/actual_rpm", 
+            rclcpp::SensorDataQoS());
+        quad_cmd_raw_sub_ = this->create_subscription<QuadCmdRaw>("/uav/cmd_raw", 1,
+            std::bind(&Ros2Libcanard::quad_cmd_raw_callback, this, std::placeholders::_1));
 
-    actual_rpm_pub_ = this->create_publisher<HexaActualRpm>("/uav/actual_rpm", 
-        rclcpp::SensorDataQoS());
+        uav_type_ = UavType::QUAD;
+    }
+    else if(NUM_ESC_ == 6)
+    {
+        hexa_actual_rpm_pub_ = this->create_publisher<HexaActualRpm>("/uav/actual_rpm", 
+            rclcpp::SensorDataQoS());
+        hexa_cmd_raw_sub_ = this->create_subscription<HexaCmdRaw>("/uav/cmd_raw", 1,
+            std::bind(&Ros2Libcanard::hexa_cmd_raw_callback, this, std::placeholders::_1));
+        uav_type_ = UavType::HEXA;
+    }
+    else
+    {
+        RCLCPP_ERROR(this->get_logger(),"Unsupported number of ESC: %d", NUM_ESC_);
+        throw std::runtime_error("Unsupported number of ESC");
+    }
+
     voltage_pub_ = this->create_publisher<Float64>("voltage", 
         rclcpp::SensorDataQoS());
-
-    cmd_raw_sub_ = this->create_subscription<HexaCmdRaw>("/uav/cmd_raw", 1,
-        std::bind(&Ros2Libcanard::hexa_cmd_raw_callback, this, std::placeholders::_1));
 
     canard_process_timer_ = this->create_wall_timer(0.1ms,
         std::bind(&Ros2Libcanard::process_canard, this));
@@ -90,6 +114,21 @@ void Ros2Libcanard::process_canard()
     canard_interface_.process(1);
 }
 
+void Ros2Libcanard::single_cmd_raw_callback(const ros2_libcanard_msgs::msg::SingleCmdRaw::SharedPtr msg)
+{
+
+    uavcan_cmd_msg_.cmd.data[0] = msg->cmd_raw;
+}
+
+void Ros2Libcanard::quad_cmd_raw_callback(const ros2_libcanard_msgs::msg::QuadCmdRaw::SharedPtr msg)
+{
+
+    for(int i = 0; i < NUM_ESC_; i++)
+    {
+        uavcan_cmd_msg_.cmd.data[i] = msg->cmd_raw[i];
+    }
+}
+
 void Ros2Libcanard::hexa_cmd_raw_callback(const ros2_libcanard_msgs::msg::HexaCmdRaw::SharedPtr msg)
 {
 
@@ -102,19 +141,56 @@ void Ros2Libcanard::hexa_cmd_raw_callback(const ros2_libcanard_msgs::msg::HexaCm
 void Ros2Libcanard::handle_esc_status(const CanardRxTransfer &transfer,
                            const uavcan_equipment_esc_Status &msg)
 {
-    actual_rpm_msg_.rpm[msg.esc_index] = msg.rpm;
 
-    // RCLCPP_INFO(this->get_logger(),"Handle ESC status");
+    switch(uav_type_)
+    {
+        case UavType::SINGLE:
+            single_actual_rpm_msg_.rpm = msg.rpm;
+            break;
+        case UavType::QUAD:
+            quad_actual_rpm_msg_.rpm[msg.esc_index] = msg.rpm;
+            break;
+        case UavType::HEXA:
+            hexa_actual_rpm_msg_.rpm[msg.esc_index] = msg.rpm;
+            break;
+        default:
+            RCLCPP_ERROR(this->get_logger(),"Unsupported UAV type");
+            return;
+    }
 
     esc_count_++;
     
     if(esc_count_ == NUM_ESC_)
     {
-        actual_rpm_msg_.header.stamp = this->now();
+
+        switch(uav_type_)
+        {
+            case UavType::SINGLE:
+                single_actual_rpm_msg_.header.stamp = this->now();
+                // printf("Publishing actual rpm\n");
+                voltage_msg_.data = msg.voltage;
+                single_actual_rpm_pub_->publish(single_actual_rpm_msg_);
+                break;
+            case UavType::QUAD:
+                quad_actual_rpm_msg_.header.stamp = this->now();
+                // printf("Publishing actual rpm\n");
+                voltage_msg_.data = msg.voltage;
+                quad_actual_rpm_pub_->publish(quad_actual_rpm_msg_);
+                break;
+            case UavType::HEXA:
+                hexa_actual_rpm_msg_.header.stamp = this->now();
+                // printf("Publishing actual rpm\n");
+                voltage_msg_.data = msg.voltage;
+                hexa_actual_rpm_pub_->publish(hexa_actual_rpm_msg_);
+                break;
+            default:
+                RCLCPP_ERROR(this->get_logger(),"Unsupported UAV type");
+                return;
+        }
+
         // printf("Publishing actual rpm\n");
         voltage_msg_.data = msg.voltage;
         esc_cmd_pub_.broadcast(uavcan_cmd_msg_);
-        actual_rpm_pub_->publish(actual_rpm_msg_);
         voltage_pub_->publish(voltage_msg_);
         esc_count_ = 0;
     }
