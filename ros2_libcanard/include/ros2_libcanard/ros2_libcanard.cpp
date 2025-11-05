@@ -97,7 +97,6 @@ void Ros2Libcanard::hexa_cmd_raw_callback(const ros2_libcanard_msgs::msg::HexaCm
     {
         uavcan_cmd_msg_.cmd.data[i] = msg->cmd_raw[i];
     }
-    esc_cmd_pub_.broadcast(uavcan_cmd_msg_);
 }
 
 void Ros2Libcanard::handle_esc_status(const CanardRxTransfer &transfer,
@@ -114,6 +113,7 @@ void Ros2Libcanard::handle_esc_status(const CanardRxTransfer &transfer,
         actual_rpm_msg_.header.stamp = this->now();
         // printf("Publishing actual rpm\n");
         voltage_msg_.data = msg.voltage;
+        esc_cmd_pub_.broadcast(uavcan_cmd_msg_);
         actual_rpm_pub_->publish(actual_rpm_msg_);
         voltage_pub_->publish(voltage_msg_);
         esc_count_ = 0;

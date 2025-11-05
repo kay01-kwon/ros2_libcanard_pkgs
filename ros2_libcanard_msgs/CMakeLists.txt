@@ -15,6 +15,8 @@ rosidl_generate_interfaces(
   "msg/HexaCmdRaw.msg"
   "msg/QuadActualRpm.msg"
   "msg/QuadCmdRaw.msg"
+  "msg/SingleActualRpm.msg"
+  "msg/SingleCmdRaw.msg"
   DEPENDENCIES std_msgs
 )
 
