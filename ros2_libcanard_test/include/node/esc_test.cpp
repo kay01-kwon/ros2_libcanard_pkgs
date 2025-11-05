@@ -16,14 +16,21 @@ ESCTestNode::ESCTestNode()
         case DroneModel::SINGLE:
             quad_cmd_publisher_ = nullptr;
             hexa_cmd_publisher_ = this->create_publisher<HexaCmdRaw>("/uav/cmd_raw", 5);
+            quad_cmd_rpm_publisher_ = nullptr;
+            hexa_cmd_rpm_publisher_ = this->create_publisher<HexaActualRpm>("/uav/cmd_rpm", 5);
+
             break;
         case DroneModel::QUAD:
             quad_cmd_publisher_ = this->create_publisher<QuadCmdRaw>("/uav/cmd_raw", 5);
+            quad_cmd_rpm_publisher_ = this->create_publisher<QuadActualRpm>("/uav/cmd_rpm", 5);
             hexa_cmd_publisher_ = nullptr;
+            hexa_cmd_rpm_publisher_ = nullptr;
             break;
         case DroneModel::HEXA:
             quad_cmd_publisher_ = nullptr;
+            quad_cmd_rpm_publisher_ = nullptr;
             hexa_cmd_publisher_ = this->create_publisher<HexaCmdRaw>("/uav/cmd_raw", 5);
+            hexa_cmd_rpm_publisher_ = this->create_publisher<HexaActualRpm>("/uav/cmd_rpm", 5);
             break;
         default:
             RCLCPP_WARN(this->get_logger(), "Unknown RC Mode");
@@ -71,22 +78,32 @@ void ESCTestNode::rc_callback(const RCIn::SharedPtr msg)
     
     Vector6i16 motor_commands = rc_converter_->get_motor_commands();
     
+
     if (drone_model_ == DroneModel::SINGLE) {
         if (hexa_cmd_publisher_ != nullptr) {
+            hexa_cmd_.header.stamp = this->now();
+            hexa_cmd_rpm_.header.stamp = this->now();
             for (size_t i = 0; i < 6; ++i) {
                 hexa_cmd_.cmd_raw[i] = motor_commands(i);
+                hexa_cmd_rpm_.rpm[i] = static_cast<int32_t>( (static_cast<double>(motor_commands(i)) / MaxBit_) * MaxRpm_ );
             }
         }
     } else if (drone_model_ == DroneModel::QUAD) {
         if (quad_cmd_publisher_ != nullptr) {
+            quad_cmd_.header.stamp = this->now();
+            quad_cmd_rpm_.header.stamp = this->now();
             for (size_t i = 0; i < 4; ++i) {
                 quad_cmd_.cmd_raw[i] = motor_commands(i);
+                quad_cmd_rpm_.rpm[i] = static_cast<int32_t>( (static_cast<double>(motor_commands(i)) / MaxBit_) * MaxRpm_ );
             }
         }
     } else if (drone_model_ == DroneModel::HEXA) {
         if (hexa_cmd_publisher_ != nullptr) {
+            hexa_cmd_.header.stamp = this->now();
+            hexa_cmd_rpm_.header.stamp = this->now();
             for (size_t i = 0; i < 6; ++i) {
                 hexa_cmd_.cmd_raw[i] = motor_commands(i);
+                hexa_cmd_rpm_.rpm[i] = static_cast<int32_t>( (static_cast<double>(motor_commands(i)) / MaxBit_) * MaxRpm_ );
             }
         }
     }
@@ -99,14 +116,17 @@ void ESCTestNode::timer_callback()
     if (drone_model_ == DroneModel::SINGLE) {
         if (hexa_cmd_publisher_ != nullptr) {
             hexa_cmd_publisher_->publish(hexa_cmd_);
+            hexa_cmd_rpm_publisher_->publish(hexa_cmd_rpm_);
         }
     } else if (drone_model_ == DroneModel::QUAD) {
         if (quad_cmd_publisher_ != nullptr) {
             quad_cmd_publisher_->publish(quad_cmd_);
+            quad_cmd_rpm_publisher_->publish(quad_cmd_rpm_);
         }
     } else if (drone_model_ == DroneModel::HEXA) {
         if (hexa_cmd_publisher_ != nullptr) {
             hexa_cmd_publisher_->publish(hexa_cmd_);
+            hexa_cmd_rpm_publisher_->publish(hexa_cmd_rpm_);
         }
     }
 
