@@ -14,21 +14,16 @@ ESCTestNode::ESCTestNode()
     switch(drone_model_)
     {
         case DroneModel::SINGLE:
-            quad_cmd_publisher_ = nullptr;
-            hexa_cmd_publisher_ = this->create_publisher<HexaCmdRaw>("/uav/cmd_raw", 5);
-            quad_cmd_rpm_publisher_ = nullptr;
-            hexa_cmd_rpm_publisher_ = this->create_publisher<HexaActualRpm>("/uav/cmd_rpm", 5);
+            single_cmd_publisher_ = this->create_publisher<SingleCmdRaw>("/uav/cmd_raw", 5);
+            single_cmd_rpm_publisher_ = this->create_publisher<SingleActualRpm>("/uav/cmd_rpm", 5);
 
             break;
         case DroneModel::QUAD:
             quad_cmd_publisher_ = this->create_publisher<QuadCmdRaw>("/uav/cmd_raw", 5);
             quad_cmd_rpm_publisher_ = this->create_publisher<QuadActualRpm>("/uav/cmd_rpm", 5);
-            hexa_cmd_publisher_ = nullptr;
-            hexa_cmd_rpm_publisher_ = nullptr;
+
             break;
         case DroneModel::HEXA:
-            quad_cmd_publisher_ = nullptr;
-            quad_cmd_rpm_publisher_ = nullptr;
             hexa_cmd_publisher_ = this->create_publisher<HexaCmdRaw>("/uav/cmd_raw", 5);
             hexa_cmd_rpm_publisher_ = this->create_publisher<HexaActualRpm>("/uav/cmd_rpm", 5);
             break;
@@ -80,13 +75,11 @@ void ESCTestNode::rc_callback(const RCIn::SharedPtr msg)
     
 
     if (drone_model_ == DroneModel::SINGLE) {
-        if (hexa_cmd_publisher_ != nullptr) {
-            hexa_cmd_.header.stamp = this->now();
-            hexa_cmd_rpm_.header.stamp = this->now();
-            for (size_t i = 0; i < 6; ++i) {
-                hexa_cmd_.cmd_raw[i] = motor_commands(i);
-                hexa_cmd_rpm_.rpm[i] = static_cast<int32_t>( (static_cast<double>(motor_commands(i)) / MaxBit_) * MaxRpm_ );
-            }
+        if (single_cmd_publisher_ != nullptr) {
+            single_cmd_.header.stamp = this->now();
+            single_cmd_rpm_.header.stamp = this->now();
+            single_cmd_.cmd_raw = motor_commands(0);
+            single_cmd_rpm_.rpm = static_cast<int32_t>( (static_cast<double>(motor_commands(0)) / MaxBit_) * MaxRpm_ );
         }
     } else if (drone_model_ == DroneModel::QUAD) {
         if (quad_cmd_publisher_ != nullptr) {
