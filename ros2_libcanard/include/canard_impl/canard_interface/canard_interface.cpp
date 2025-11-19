@@ -21,7 +21,7 @@ void CanardInterface::init(const char *interface_name)
                 this);
 
     // Set the node id
-    canardSetLocalNodeID(&canard_, 127);
+    canardSetLocalNodeID(&canard_, 1);
 }
 
 bool CanardInterface::broadcast(const Canard::Transfer &transfer)
@@ -73,10 +73,15 @@ void CanardInterface::process(uint32_t duration_ms)
 {
     for(const CanardCANFrame* txf = NULL; (txf = canardPeekTxQueue(&canard_)) != NULL;)
     {
-        const int16_t tx_res = socketcanTransmit(&socketcan_, txf, 0);
+        const int16_t tx_res = socketcanTransmit(&socketcan_, txf, duration_ms);
+
         if(tx_res != 0)
         {
             canardPopTxQueue(&canard_);
+        }
+        else
+        {
+            break;
         }
     }
 

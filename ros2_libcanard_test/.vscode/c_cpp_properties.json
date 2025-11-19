@@ -5,8 +5,9 @@
             "includePath": [
                 "${workspaceFolder}/**",
                 "/opt/ros/humble/include/**",
+                "~/ros2_ws/install/**",
+                "/opt/ros/humble/include/rclcpp",
                 "~/esc_ws/install/ros2_libcanard_msgs/include/**",
-                "/opt/ros/humble/include/rclcpp"
             ],
             "defines": [],
             "compilerPath": "/usr/bin/gcc",

@@ -10,6 +10,7 @@
 #include <assert.h>
 #include <errno.h>
 #include <stdbool.h>
+#include <chrono>
 
 // include the canard C++ APIs
 #include "canard/publisher.h"
@@ -50,8 +51,6 @@ class CanardInterface : public Canard::Interface{
 
 
     public:
-
-        friend class DroneCanNode;
 
         CanardInterface(uint8_t iface_index)
         : Interface(iface_index)

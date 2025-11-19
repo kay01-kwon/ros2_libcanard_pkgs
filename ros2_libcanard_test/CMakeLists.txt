@@ -11,6 +11,7 @@ set(esc_test_src
   include/converter/cmd_to_rpm.cpp
   include/mode/rc_mode_checker.cpp
   include/node/esc_test.cpp
+  include/node/epos4_test.cpp
 )
 
 if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
@@ -38,6 +39,8 @@ ament_target_dependencies(
   ros2_libcanard_msgs
   mavros_msgs
 )
+
+# ESC Test Node
 add_executable(
   esc_test_node
   src/esc_test_node.cpp
@@ -48,8 +51,19 @@ target_link_libraries(
   esc_test_lib
 )
 
+# EPOS4 Test Node
+add_executable(
+  epos4_test_node
+  src/epos4_test_node.cpp
+)
+
+target_link_libraries(
+  epos4_test_node
+  esc_test_lib
+)
+
 install(
-  TARGETS esc_test_node
+  TARGETS esc_test_node epos4_test_node
   DESTINATION lib/${PROJECT_NAME}
 )
 
