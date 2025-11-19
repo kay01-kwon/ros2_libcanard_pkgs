@@ -107,9 +107,9 @@ void ESCTestNode::rc_callback(const RCIn::SharedPtr msg)
 void ESCTestNode::timer_callback()
 {
     if (drone_model_ == DroneModel::SINGLE) {
-        if (hexa_cmd_publisher_ != nullptr) {
-            hexa_cmd_publisher_->publish(hexa_cmd_);
-            hexa_cmd_rpm_publisher_->publish(hexa_cmd_rpm_);
+        if (single_cmd_publisher_ != nullptr) {
+            single_cmd_publisher_->publish(single_cmd_);
+            single_cmd_rpm_publisher_->publish(single_cmd_rpm_);
         }
     } else if (drone_model_ == DroneModel::QUAD) {
         if (quad_cmd_publisher_ != nullptr) {

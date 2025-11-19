@@ -59,6 +59,7 @@ private:
 
     void hexa_cmd_raw_callback(const ros2_libcanard_msgs::msg::HexaCmdRaw::SharedPtr msg);
 
+    void raw_cmd_timer_callback();
 
     CanardInterface canard_interface_{0};
     uint8_t NUM_ESC_{6};
@@ -105,23 +106,38 @@ private:
     
 
     rclcpp::Publisher<SingleActualRpm>::SharedPtr single_actual_rpm_pub_{nullptr};
+    rclcpp::Publisher<SingleActualRpm>::SharedPtr single_cmd_raw_broadcast_pub_{nullptr};
+
     rclcpp::Publisher<QuadActualRpm>::SharedPtr quad_actual_rpm_pub_{nullptr};
+    rclcpp::Publisher<QuadActualRpm>::SharedPtr quad_cmd_raw_broadcast_pub_{nullptr};
+
     rclcpp::Publisher<HexaActualRpm>::SharedPtr hexa_actual_rpm_pub_{nullptr};
+    rclcpp::Publisher<HexaActualRpm>::SharedPtr hexa_cmd_raw_broadcast_pub_{nullptr};
+
     rclcpp::Publisher<Float64>::SharedPtr voltage_pub_{nullptr};
     
     SingleActualRpm single_actual_rpm_msg_;
+
     QuadActualRpm quad_actual_rpm_msg_;
+
     HexaActualRpm hexa_actual_rpm_msg_;
+    
     Float64 voltage_msg_;
     
     rclcpp::Subscription<SingleCmdRaw>::SharedPtr single_cmd_raw_sub_{nullptr};
     rclcpp::Subscription<QuadCmdRaw>::SharedPtr quad_cmd_raw_sub_{nullptr};
     rclcpp::Subscription<HexaCmdRaw>::SharedPtr hexa_cmd_raw_sub_{nullptr};
     rclcpp::TimerBase::SharedPtr canard_process_timer_{nullptr};
+    rclcpp::TimerBase::SharedPtr raw_cmd_timer_{nullptr};
+    rclcpp::TimerBase::SharedPtr node_status_timer_{nullptr};
+    
 
     size_t esc_count_{0};
 
     UavType uav_type_{UavType::SINGLE};
+
+    // double t_now_{0.0};
+    // double t_prev_{0.0};
 };
 
 

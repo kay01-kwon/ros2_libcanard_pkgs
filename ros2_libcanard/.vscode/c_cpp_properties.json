@@ -5,6 +5,7 @@
             "includePath": [
                 "${workspaceFolder}/**",
                 "/opt/ros/humble/include/**",
+                "~/ros2_ws/install/**",
                 "~/esc_ws/install/**"
             ],
             "defines": [],

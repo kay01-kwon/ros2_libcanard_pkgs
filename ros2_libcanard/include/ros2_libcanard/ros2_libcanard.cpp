@@ -67,6 +67,7 @@ Ros2Libcanard::Ros2Libcanard()
     {
         single_actual_rpm_pub_ = this->create_publisher<SingleActualRpm>("/uav/actual_rpm", 
             rclcpp::SensorDataQoS());
+        single_cmd_raw_broadcast_pub_ = this->create_publisher<SingleActualRpm>("/uav/broadcast", 1);
         single_cmd_raw_sub_ = this->create_subscription<SingleCmdRaw>("/uav/cmd_raw", 1,
             std::bind(&Ros2Libcanard::single_cmd_raw_callback, this, std::placeholders::_1));
         
@@ -76,6 +77,7 @@ Ros2Libcanard::Ros2Libcanard()
     {
         quad_actual_rpm_pub_ = this->create_publisher<QuadActualRpm>("/uav/actual_rpm", 
             rclcpp::SensorDataQoS());
+        quad_cmd_raw_broadcast_pub_ = this->create_publisher<QuadActualRpm>("/uav/broadcast", 1);
         quad_cmd_raw_sub_ = this->create_subscription<QuadCmdRaw>("/uav/cmd_raw", 1,
             std::bind(&Ros2Libcanard::quad_cmd_raw_callback, this, std::placeholders::_1));
 
@@ -85,6 +87,7 @@ Ros2Libcanard::Ros2Libcanard()
     {
         hexa_actual_rpm_pub_ = this->create_publisher<HexaActualRpm>("/uav/actual_rpm", 
             rclcpp::SensorDataQoS());
+        hexa_cmd_raw_broadcast_pub_ = this->create_publisher<HexaActualRpm>("/uav/broadcast", 1);
         hexa_cmd_raw_sub_ = this->create_subscription<HexaCmdRaw>("/uav/cmd_raw", 1,
             std::bind(&Ros2Libcanard::hexa_cmd_raw_callback, this, std::placeholders::_1));
         uav_type_ = UavType::HEXA;
@@ -98,9 +101,14 @@ Ros2Libcanard::Ros2Libcanard()
     voltage_pub_ = this->create_publisher<Float64>("voltage", 
         rclcpp::SensorDataQoS());
 
-    canard_process_timer_ = this->create_wall_timer(0.1ms,
+    canard_process_timer_ = this->create_wall_timer(100us,
         std::bind(&Ros2Libcanard::process_canard, this));
 
+    raw_cmd_timer_ = this->create_wall_timer(10ms,
+        std::bind(&Ros2Libcanard::raw_cmd_timer_callback, this));
+
+    // node_status_timer_ = this->create_wall_timer(1s,
+    //     std::bind(&Ros2Libcanard::send_NodeStatus, this));
 
 }
 
@@ -116,13 +124,13 @@ void Ros2Libcanard::process_canard()
 
 void Ros2Libcanard::single_cmd_raw_callback(const ros2_libcanard_msgs::msg::SingleCmdRaw::SharedPtr msg)
 {
-
+    uavcan_cmd_msg_.cmd.len = NUM_ESC_;
     uavcan_cmd_msg_.cmd.data[0] = msg->cmd_raw;
 }
 
 void Ros2Libcanard::quad_cmd_raw_callback(const ros2_libcanard_msgs::msg::QuadCmdRaw::SharedPtr msg)
 {
-
+    uavcan_cmd_msg_.cmd.len = NUM_ESC_;
     for(int i = 0; i < NUM_ESC_; i++)
     {
         uavcan_cmd_msg_.cmd.data[i] = msg->cmd_raw[i];
@@ -131,11 +139,55 @@ void Ros2Libcanard::quad_cmd_raw_callback(const ros2_libcanard_msgs::msg::QuadCm
 
 void Ros2Libcanard::hexa_cmd_raw_callback(const ros2_libcanard_msgs::msg::HexaCmdRaw::SharedPtr msg)
 {
-
+    uavcan_cmd_msg_.cmd.len = NUM_ESC_;
     for(int i = 0; i < NUM_ESC_; i++)
     {
         uavcan_cmd_msg_.cmd.data[i] = msg->cmd_raw[i];
     }
+}
+
+void Ros2Libcanard::raw_cmd_timer_callback()
+{
+    bool success = esc_cmd_pub_.broadcast(uavcan_cmd_msg_);
+
+    if(!success)
+    {
+        RCLCPP_WARN(this->get_logger(),"Failed to broadcast ESC command");
+    }
+
+    auto single_broadcast_msg = SingleActualRpm();
+    auto quad_broadcast_msg = QuadActualRpm();
+    auto hexa_broadcast_msg = HexaActualRpm();
+
+    switch(uav_type_)
+    {
+        case UavType::SINGLE:
+
+            single_broadcast_msg.header.stamp = this->now();
+            single_broadcast_msg.rpm = uavcan_cmd_msg_.cmd.data[0]*9800.0/8191.0;
+            single_cmd_raw_broadcast_pub_->publish(single_broadcast_msg);
+            break;
+        case UavType::QUAD:
+            quad_broadcast_msg.header.stamp = this->now();
+            for(size_t i = 0; i < NUM_ESC_; i++)
+            {
+                quad_broadcast_msg.rpm[i] = uavcan_cmd_msg_.cmd.data[i]*9800.0/8191.0;
+            }
+            quad_cmd_raw_broadcast_pub_->publish(quad_broadcast_msg);
+            break;
+        case UavType::HEXA:
+            hexa_broadcast_msg.header.stamp = this->now();
+            for(size_t i = 0; i < NUM_ESC_; i++)
+            {
+                hexa_broadcast_msg.rpm[i] = uavcan_cmd_msg_.cmd.data[i]*9800.0/8191.0;
+            }
+            hexa_cmd_raw_broadcast_pub_->publish(hexa_broadcast_msg);
+            break;
+        default:
+            RCLCPP_ERROR(this->get_logger(),"Unsupported UAV type");
+            return;
+    }
+
 }
 
 void Ros2Libcanard::handle_esc_status(const CanardRxTransfer &transfer,
@@ -162,35 +214,29 @@ void Ros2Libcanard::handle_esc_status(const CanardRxTransfer &transfer,
     
     if(esc_count_ == NUM_ESC_)
     {
-
+        auto quad_broadcast_msg = QuadActualRpm();
+        auto hexa_broadcast_msg = HexaActualRpm();
         switch(uav_type_)
         {
             case UavType::SINGLE:
                 single_actual_rpm_msg_.header.stamp = this->now();
-                // printf("Publishing actual rpm\n");
-                voltage_msg_.data = msg.voltage;
                 single_actual_rpm_pub_->publish(single_actual_rpm_msg_);
                 break;
             case UavType::QUAD:
                 quad_actual_rpm_msg_.header.stamp = this->now();
-                // printf("Publishing actual rpm\n");
-                voltage_msg_.data = msg.voltage;
                 quad_actual_rpm_pub_->publish(quad_actual_rpm_msg_);
                 break;
-            case UavType::HEXA:
+            case UavType::HEXA:                
                 hexa_actual_rpm_msg_.header.stamp = this->now();
-                // printf("Publishing actual rpm\n");
-                voltage_msg_.data = msg.voltage;
                 hexa_actual_rpm_pub_->publish(hexa_actual_rpm_msg_);
                 break;
             default:
                 RCLCPP_ERROR(this->get_logger(),"Unsupported UAV type");
                 return;
         }
-
-        // printf("Publishing actual rpm\n");
+        
+        // esc_cmd_pub_.broadcast(uavcan_cmd_msg_);
         voltage_msg_.data = msg.voltage;
-        esc_cmd_pub_.broadcast(uavcan_cmd_msg_);
         voltage_pub_->publish(voltage_msg_);
         esc_count_ = 0;
     }
@@ -210,6 +256,7 @@ void Ros2Libcanard::handle_getNodeInfo(const CanardRxTransfer& transfer,
 
 void Ros2Libcanard::send_NodeStatus()
 {
+    uavcan_node_status_msg_.vendor_specific_status_code = 0;
     uavcan_node_status_msg_.health = UAVCAN_PROTOCOL_NODESTATUS_HEALTH_OK;
     uavcan_node_status_msg_.mode = UAVCAN_PROTOCOL_NODESTATUS_MODE_OPERATIONAL;
     uavcan_node_status_msg_.sub_mode = 0;
