@@ -39,9 +39,9 @@ Ros2Libcanard::Ros2Libcanard()
     // Request node info for nodes
     for(size_t i = 0; i < NUM_ESC_; i++)
     {
-        printf("Requesting node info for node %ld\n",i+1);
+        printf("Requesting node info for node %ld\n",i+2);
         req = {};
-        while(!get_node_info_client_.request(i+1, req))
+        while(!get_node_info_client_.request(i+2, req))
         {
             printf("Pending response\n");
             // Pop Tx queue and socketcanReceive for 10 ms
