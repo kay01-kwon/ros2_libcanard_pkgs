@@ -93,5 +93,6 @@
         "/opt/ros/humble/lib/python3.10/site-packages",
         "/opt/ros/humble/local/lib/python3.10/dist-packages"
     ],
-    "ROS2.distro": "humble"
+    "ROS2.distro": "humble",
+    "cmake.sourceDirectory": "/home/kay/ros2_ws/src/ros2_libcanard_pkgs/ros2_libcanard"
 }
