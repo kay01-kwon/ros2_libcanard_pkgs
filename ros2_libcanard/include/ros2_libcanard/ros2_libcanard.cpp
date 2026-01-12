@@ -198,12 +198,15 @@ void Ros2Libcanard::handle_esc_status(const CanardRxTransfer &transfer,
     {
         case UavType::SINGLE:
             single_actual_rpm_msg_.rpm = msg.rpm;
+            single_actual_rpm_msg_.acceleration = 0;
             break;
         case UavType::QUAD:
             quad_actual_rpm_msg_.rpm[msg.esc_index] = msg.rpm;
+            quad_actual_rpm_msg_.acceleration[msg.esc_index] = 0;
             break;
         case UavType::HEXA:
             hexa_actual_rpm_msg_.rpm[msg.esc_index] = msg.rpm;
+            hexa_actual_rpm_msg_.acceleration[msg.esc_index] = 0;
             break;
         default:
             RCLCPP_ERROR(this->get_logger(),"Unsupported UAV type");
