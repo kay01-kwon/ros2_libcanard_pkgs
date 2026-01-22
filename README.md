@@ -126,7 +126,7 @@ ros2 launch ros2_libcanard esc_bringup.launch.py
 
 ## 4. Test
 
-1. Single esc test
+### 1. Single esc test
 
 Terminal 1
 ```
@@ -143,7 +143,7 @@ Terminal 2
 ros2 launch ros2_libcanard_test single_esc_test.launch.py
 ```
 
-2. Hexa test
+### 2. S550 test with RC
 
 Terminal 1
 ```
