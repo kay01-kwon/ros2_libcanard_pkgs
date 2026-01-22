@@ -42,6 +42,13 @@ enum class UavType
     HEXA
 };
 
+enum class VoltageState
+{
+    NORMAL,
+    LOW_VOLTAGE_WARNING,
+    CRITICAL_EMERGENCY_LANDING
+};
+
 class Ros2Libcanard : public rclcpp::Node
 {
 public:
@@ -62,6 +69,9 @@ private:
     void raw_cmd_timer_callback();
 
     void start_raw_cmd_timer();
+
+    void check_voltage_and_update_state(double voltage);
+    void apply_emergency_landing();
 
     CanardInterface canard_interface_{0};
     uint8_t NUM_ESC_{6};
@@ -139,6 +149,13 @@ private:
     size_t broadcast_fail_count_{0};
 
     UavType uav_type_{UavType::SINGLE};
+    VoltageState voltage_state_{VoltageState::NORMAL};
+
+    // Voltage monitoring parameters
+    double low_voltage_threshold_{21.0};      // Warning threshold (V)
+    double critical_voltage_threshold_{20.0}; // Emergency landing threshold (V)
+    double current_voltage_{0.0};
+    bool emergency_landing_active_{false};
 
     // double t_now_{0.0};
     // double t_prev_{0.0};

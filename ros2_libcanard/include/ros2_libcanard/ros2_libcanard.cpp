@@ -12,13 +12,19 @@ Ros2Libcanard::Ros2Libcanard()
     // Declare parameters
     this->declare_parameter("interface_name", interface_name);
     this->declare_parameter("num_esc", NUM_ESC);
+    this->declare_parameter("low_voltage_threshold", low_voltage_threshold_);
+    this->declare_parameter("critical_voltage_threshold", critical_voltage_threshold_);
 
     // Get parameters from parameter server
     this->get_parameter("interface_name", interface_name);
     this->get_parameter("num_esc", NUM_ESC);
+    this->get_parameter("low_voltage_threshold", low_voltage_threshold_);
+    this->get_parameter("critical_voltage_threshold", critical_voltage_threshold_);
 
     printf("Interface: %s\n", interface_name.c_str());
     printf("Number of ESC: %d\n", NUM_ESC);
+    printf("Low voltage threshold: %.2f V\n", low_voltage_threshold_);
+    printf("Critical voltage threshold: %.2f V\n", critical_voltage_threshold_);
 
     NUM_ESC_ = static_cast<uint8_t>(NUM_ESC);
     canard_interface_.init(interface_name.c_str());
@@ -269,6 +275,10 @@ void Ros2Libcanard::handle_esc_status(const CanardRxTransfer &transfer,
         // esc_cmd_pub_.broadcast(uavcan_cmd_msg_);
         voltage_msg_.data = msg.voltage;
         voltage_pub_->publish(voltage_msg_);
+
+        // Check voltage and update state
+        check_voltage_and_update_state(msg.voltage);
+
         esc_count_ = 0;
     }
 }
@@ -293,4 +303,85 @@ void Ros2Libcanard::send_NodeStatus()
     uavcan_node_status_msg_.sub_mode = 0;
     uavcan_node_status_msg_.uptime_sec = millis32() / 1000UL;
     node_status_pub_.broadcast(uavcan_node_status_msg_);
+}
+
+void Ros2Libcanard::check_voltage_and_update_state(double voltage)
+{
+    current_voltage_ = voltage;
+
+    // State machine for voltage monitoring
+    switch(voltage_state_)
+    {
+        case VoltageState::NORMAL:
+            if(voltage < critical_voltage_threshold_)
+            {
+                voltage_state_ = VoltageState::CRITICAL_EMERGENCY_LANDING;
+                RCLCPP_ERROR(this->get_logger(),
+                    "CRITICAL: Battery voltage %.2fV below threshold %.2fV - INITIATING EMERGENCY LANDING",
+                    voltage, critical_voltage_threshold_);
+                emergency_landing_active_ = true;
+            }
+            else if(voltage < low_voltage_threshold_)
+            {
+                voltage_state_ = VoltageState::LOW_VOLTAGE_WARNING;
+                RCLCPP_WARN(this->get_logger(),
+                    "WARNING: Battery voltage %.2fV below threshold %.2fV - Return to land recommended",
+                    voltage, low_voltage_threshold_);
+            }
+            break;
+
+        case VoltageState::LOW_VOLTAGE_WARNING:
+            if(voltage < critical_voltage_threshold_)
+            {
+                voltage_state_ = VoltageState::CRITICAL_EMERGENCY_LANDING;
+                RCLCPP_ERROR(this->get_logger(),
+                    "CRITICAL: Battery voltage %.2fV below threshold %.2fV - INITIATING EMERGENCY LANDING",
+                    voltage, critical_voltage_threshold_);
+                emergency_landing_active_ = true;
+            }
+            else if(voltage >= low_voltage_threshold_)
+            {
+                voltage_state_ = VoltageState::NORMAL;
+                RCLCPP_INFO(this->get_logger(),
+                    "Battery voltage recovered to %.2fV - Normal operation resumed",
+                    voltage);
+            }
+            break;
+
+        case VoltageState::CRITICAL_EMERGENCY_LANDING:
+            if(voltage >= low_voltage_threshold_)
+            {
+                voltage_state_ = VoltageState::NORMAL;
+                emergency_landing_active_ = false;
+                RCLCPP_INFO(this->get_logger(),
+                    "Battery voltage recovered to %.2fV - Emergency landing cancelled",
+                    voltage);
+            }
+            else
+            {
+                // Continue emergency landing
+                apply_emergency_landing();
+            }
+            break;
+    }
+}
+
+void Ros2Libcanard::apply_emergency_landing()
+{
+    // Gradually reduce ESC commands to safe landing speed
+    // Reduce by 10% per call (called at ESC status rate ~50Hz for 6 ESCs)
+    const double reduction_factor = 0.98;  // 2% reduction per call
+
+    for(size_t i = 0; i < NUM_ESC_; i++)
+    {
+        if(uavcan_cmd_msg_.cmd.data[i] > 100)  // Keep minimum control authority
+        {
+            uavcan_cmd_msg_.cmd.data[i] =
+                static_cast<int16_t>(uavcan_cmd_msg_.cmd.data[i] * reduction_factor);
+        }
+    }
+
+    RCLCPP_WARN_THROTTLE(this->get_logger(), *this->get_clock(), 1000,
+        "Emergency landing in progress - Current voltage: %.2fV, Reducing ESC commands",
+        current_voltage_);
 }
