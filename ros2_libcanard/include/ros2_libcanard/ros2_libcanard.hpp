@@ -10,7 +10,6 @@
 #include <chrono>
 #include <functional>
 #include <memory>
-#include <thread>
 
 #include <rclcpp/rclcpp.hpp>
 
@@ -61,6 +60,8 @@ private:
     void hexa_cmd_raw_callback(const ros2_libcanard_msgs::msg::HexaCmdRaw::SharedPtr msg);
 
     void raw_cmd_timer_callback();
+
+    void start_raw_cmd_timer();
 
     CanardInterface canard_interface_{0};
     uint8_t NUM_ESC_{6};
@@ -131,6 +132,7 @@ private:
     rclcpp::TimerBase::SharedPtr canard_process_timer_{nullptr};
     rclcpp::TimerBase::SharedPtr raw_cmd_timer_{nullptr};
     rclcpp::TimerBase::SharedPtr node_status_timer_{nullptr};
+    rclcpp::TimerBase::SharedPtr init_timer_{nullptr};
     
 
     size_t esc_count_{0};

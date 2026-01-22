@@ -62,16 +62,6 @@ Ros2Libcanard::Ros2Libcanard()
     // switch to operational mode
     esc_cmd_pub_.broadcast(uavcan_cmd_msg_);
 
-    // Wait for ESCs to stabilize and switch to operational mode
-    // Especially important with multiple ESCs (6 ESCs case)
-    printf("Waiting for ESCs to stabilize...\n");
-    for(int i = 0; i < 20; i++)
-    {
-        canard_interface_.process(10);
-        std::this_thread::sleep_for(std::chrono::milliseconds(10));
-    }
-    printf("ESCs ready\n");
-
     if(NUM_ESC_ == 1)
     {
         single_actual_rpm_pub_ = this->create_publisher<SingleActualRpm>("/uav/actual_rpm", 
@@ -113,8 +103,11 @@ Ros2Libcanard::Ros2Libcanard()
     canard_process_timer_ = this->create_wall_timer(100us,
         std::bind(&Ros2Libcanard::process_canard, this));
 
-    raw_cmd_timer_ = this->create_wall_timer(10ms,
-        std::bind(&Ros2Libcanard::raw_cmd_timer_callback, this));
+    // Delay raw_cmd_timer start by 200ms to allow ESCs to stabilize
+    // Especially important with multiple ESCs (6 ESCs case)
+    printf("Waiting for ESCs to stabilize (200ms delay)...\n");
+    init_timer_ = this->create_wall_timer(200ms,
+        std::bind(&Ros2Libcanard::start_raw_cmd_timer, this));
 
     // node_status_timer_ = this->create_wall_timer(1s,
     //     std::bind(&Ros2Libcanard::send_NodeStatus, this));
@@ -153,6 +146,20 @@ void Ros2Libcanard::hexa_cmd_raw_callback(const ros2_libcanard_msgs::msg::HexaCm
     {
         uavcan_cmd_msg_.cmd.data[i] = msg->cmd_raw[i];
     }
+}
+
+void Ros2Libcanard::start_raw_cmd_timer()
+{
+    printf("ESCs ready - starting command timer\n");
+    // Cancel the one-shot init timer
+    if(init_timer_)
+    {
+        init_timer_->cancel();
+        init_timer_.reset();
+    }
+    // Start the periodic raw command timer
+    raw_cmd_timer_ = this->create_wall_timer(10ms,
+        std::bind(&Ros2Libcanard::raw_cmd_timer_callback, this));
 }
 
 void Ros2Libcanard::raw_cmd_timer_callback()
