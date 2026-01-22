@@ -65,11 +65,10 @@ Ros2Libcanard::Ros2Libcanard()
     // Wait for ESCs to stabilize and switch to operational mode
     // Especially important with multiple ESCs (6 ESCs case)
     printf("Waiting for ESCs to stabilize...\n");
-    auto start_time = std::chrono::steady_clock::now();
-    while(std::chrono::duration_cast<std::chrono::milliseconds>(
-        std::chrono::steady_clock::now() - start_time).count() < 200)
+    for(int i = 0; i < 20; i++)
     {
         canard_interface_.process(10);
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
     }
     printf("ESCs ready\n");
 
