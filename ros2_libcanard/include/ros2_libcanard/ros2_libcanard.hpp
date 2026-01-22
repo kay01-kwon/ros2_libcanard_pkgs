@@ -133,6 +133,7 @@ private:
     
 
     size_t esc_count_{0};
+    size_t broadcast_fail_count_{0};
 
     UavType uav_type_{UavType::SINGLE};
 

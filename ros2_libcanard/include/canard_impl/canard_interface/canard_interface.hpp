@@ -86,7 +86,7 @@ class CanardInterface : public Canard::Interface{
 
     private:
 
-        uint8_t memory_pool_[2048];
+        uint8_t memory_pool_[4096];  // Increased from 2048 for better handling of multiple ESCs
         CanardInstance canard_;
         CanardTxTransfer tx_transfer_;
 

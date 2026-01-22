@@ -62,6 +62,16 @@ Ros2Libcanard::Ros2Libcanard()
     // switch to operational mode
     esc_cmd_pub_.broadcast(uavcan_cmd_msg_);
 
+    // Wait for ESCs to stabilize and switch to operational mode
+    // Especially important with multiple ESCs (6 ESCs case)
+    printf("Waiting for ESCs to stabilize...\n");
+    auto start_time = std::chrono::steady_clock::now();
+    while(std::chrono::duration_cast<std::chrono::milliseconds>(
+        std::chrono::steady_clock::now() - start_time).count() < 200)
+    {
+        canard_interface_.process(10);
+    }
+    printf("ESCs ready\n");
 
     if(NUM_ESC_ == 1)
     {
@@ -152,7 +162,19 @@ void Ros2Libcanard::raw_cmd_timer_callback()
 
     if(!success)
     {
-        RCLCPP_WARN(this->get_logger(),"Failed to broadcast ESC command");
+        broadcast_fail_count_++;
+        RCLCPP_WARN(this->get_logger(),"Failed to broadcast ESC command (consecutive failures: %zu)",
+            broadcast_fail_count_);
+    }
+    else
+    {
+        // Reset counter on successful broadcast
+        if(broadcast_fail_count_ > 0)
+        {
+            RCLCPP_INFO(this->get_logger(),"Broadcast recovered after %zu failures",
+                broadcast_fail_count_);
+            broadcast_fail_count_ = 0;
+        }
     }
 
     auto single_broadcast_msg = SingleActualRpm();
