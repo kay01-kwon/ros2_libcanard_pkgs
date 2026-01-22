@@ -4,5 +4,5 @@
     motor_const: 1.465e-07
     moment_const: 0.01569
     arm_length: 0.265
-    Tmax: 9.376
+    Tmax: 3.640
     Tmin: 0.586
