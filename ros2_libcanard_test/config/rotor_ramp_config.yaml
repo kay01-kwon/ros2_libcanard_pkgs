@@ -8,7 +8,7 @@
     ramp_down_duration: 50.0   # seconds - Time to ramp down from max to idle
 
     # Drone model configuration (SINGLE, QUAD, or HEXA)
-    drone_model: "SINGLE"
+    drone_model: "HEXA"
 
     # ESC parameters
     max_bit: 8191.0           # Maximum command bit value
