@@ -3,9 +3,9 @@
     # Rotor speed ramp control parameters
     idle_rotor_speed: 2000.0  # RPM - Starting/ending rotor speed
     max_rotor_speed: 5000.0   # RPM - Maximum rotor speed
-    ramp_up_duration: 5.0     # seconds - Time to ramp up from idle to max
+    ramp_up_duration: 50.0     # seconds - Time to ramp up from idle to max
     hold_duration: 3.0        # seconds - Time to hold at max speed
-    ramp_down_duration: 5.0   # seconds - Time to ramp down from max to idle
+    ramp_down_duration: 50.0   # seconds - Time to ramp down from max to idle
 
     # Drone model configuration (SINGLE, QUAD, or HEXA)
     drone_model: "SINGLE"
