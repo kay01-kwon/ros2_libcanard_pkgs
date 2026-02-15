@@ -89,8 +89,6 @@ private:
 
     bool test_started_{false};
 
-    // Mathematical constants
-    static constexpr double PI = 3.14159265358979323846;
 };
 
 #endif // ROTOR_SINUSOIDAL_TEST_HPP
