@@ -7,7 +7,7 @@
     test_duration: 20.0       # seconds - Total test duration
 
     # Initial delay before starting sinusoidal motion
-    initial_delay: 2.0        # seconds - Wait time before starting test
+    initial_delay: 5.0        # seconds - Wait time before starting test
 
     # Drone model configuration (SINGLE, QUAD, or HEXA)
     drone_model: "SINGLE"

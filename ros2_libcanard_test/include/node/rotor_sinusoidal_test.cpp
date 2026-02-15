@@ -161,7 +161,7 @@ double RotorSinusoidalTestNode::calculate_current_rpm()
         {
             double test_elapsed = (current_time - test_start_time_).seconds();
             // Sinusoidal formula: rpm = center_rpm + amplitude * sin(2 * pi * frequency * t)
-            rpm = center_rpm_ + amplitude_ * std::sin(2.0 * PI * frequency_ * test_elapsed);
+            rpm = center_rpm_ + amplitude_ * std::sin(2.0 * M_PI * frequency_ * test_elapsed);
             break;
         }
 
