@@ -1,0 +1,17 @@
+/**:
+  ros__parameters:
+    # Rotor speed sinusoidal control parameters
+    center_rpm: 4000.0        # RPM - Center/baseline rotor speed
+    amplitude: 1000.0         # RPM - Amplitude of sinusoidal oscillation (peak-to-peak will be 2x this)
+    frequency: 0.5            # Hz - Frequency of sinusoidal wave (0.5 Hz = 2 seconds per cycle)
+    test_duration: 20.0       # seconds - Total test duration
+
+    # Initial delay before starting sinusoidal motion
+    initial_delay: 2.0        # seconds - Wait time before starting test
+
+    # Drone model configuration (SINGLE, QUAD, or HEXA)
+    drone_model: "SINGLE"
+
+    # ESC parameters
+    max_bit: 8191.0           # Maximum command bit value
+    max_rpm: 9800.0           # Maximum RPM capability of ESC
