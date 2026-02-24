@@ -130,6 +130,8 @@ private:
     Float64 voltage_msg_;
     ActualCurrent actual_current_msg_;
 
+    bool over_current_protection_{true};
+    double over_current_threshold_{20.0};
     bool is_over_current_{false};
 
     rclcpp::Subscription<SingleCmdRaw>::SharedPtr single_cmd_raw_sub_{nullptr};

@@ -12,13 +12,19 @@ Ros2Libcanard::Ros2Libcanard()
     // Declare parameters
     this->declare_parameter("interface_name", interface_name);
     this->declare_parameter("num_esc", NUM_ESC);
+    this->declare_parameter("over_current_protection", over_current_protection_);
+    this->declare_parameter("over_current_threshold", over_current_threshold_);
 
     // Get parameters from parameter server
     this->get_parameter("interface_name", interface_name);
     this->get_parameter("num_esc", NUM_ESC);
+    this->get_parameter("over_current_protection", over_current_protection_);
+    this->get_parameter("over_current_threshold", over_current_threshold_);
 
     printf("Interface: %s\n", interface_name.c_str());
     printf("Number of ESC: %d\n", NUM_ESC);
+    printf("Over current protection: %s\n", over_current_protection_ ? "enabled" : "disabled");
+    printf("Over current threshold: %.1f A\n", over_current_threshold_);
 
     NUM_ESC_ = static_cast<uint8_t>(NUM_ESC);
     canard_interface_.init(interface_name.c_str());
@@ -133,7 +139,7 @@ void Ros2Libcanard::single_cmd_raw_callback(const ros2_libcanard_msgs::msg::Sing
 {
     uavcan_cmd_msg_.cmd.len = NUM_ESC_;
 
-    if(is_over_current_)
+    if(over_current_protection_ && is_over_current_)
     {
         set_cmd_msg_zero(1);
         RCLCPP_WARN(this->get_logger(),"Over current detected - setting command to zero");
@@ -145,7 +151,7 @@ void Ros2Libcanard::single_cmd_raw_callback(const ros2_libcanard_msgs::msg::Sing
 
 void Ros2Libcanard::quad_cmd_raw_callback(const ros2_libcanard_msgs::msg::QuadCmdRaw::SharedPtr msg)
 {
-    if(is_over_current_)
+    if(over_current_protection_ && is_over_current_)
     {
         set_cmd_msg_zero(4);
         RCLCPP_WARN(this->get_logger(),"Over current detected - setting command to zero");
@@ -161,7 +167,7 @@ void Ros2Libcanard::quad_cmd_raw_callback(const ros2_libcanard_msgs::msg::QuadCm
 
 void Ros2Libcanard::hexa_cmd_raw_callback(const ros2_libcanard_msgs::msg::HexaCmdRaw::SharedPtr msg)
 {
-    if(is_over_current_)
+    if(over_current_protection_ && is_over_current_)
     {
         set_cmd_msg_zero(6);
         RCLCPP_WARN(this->get_logger(),"Over current detected - setting command to zero");
@@ -217,10 +223,11 @@ void Ros2Libcanard::handle_esc_status(const CanardRxTransfer &transfer,
                            const uavcan_equipment_esc_Status &msg)
 {
 
-    if(msg.current > 20.0)
+    if(over_current_protection_ && msg.current > over_current_threshold_)
     {
         is_over_current_ = true;
-        RCLCPP_WARN(this->get_logger(),"Over current detected on ESC %d: %f A", msg.esc_index, msg.current);
+        RCLCPP_WARN(this->get_logger(),"Over current detected on ESC %d: %.2f A (threshold: %.1f A)",
+            msg.esc_index, msg.current, over_current_threshold_);
     }
 
     switch(uav_type_)

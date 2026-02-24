@@ -1,0 +1,11 @@
+/**:
+  ros__parameters:
+    # CAN interface name (e.g., "can0", "slcan0")
+    interface_name: "slcan0"
+
+    # Number of ESCs (1: SINGLE, 4: QUAD, 6: HEXA)
+    num_esc: 1
+
+    # Over current protection
+    over_current_protection: true
+    over_current_threshold: 20.0  # Ampere
