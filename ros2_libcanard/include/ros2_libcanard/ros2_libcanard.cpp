@@ -221,7 +221,6 @@ void Ros2Libcanard::raw_cmd_timer_callback()
 void Ros2Libcanard::handle_esc_status(const CanardRxTransfer &transfer,
                            const uavcan_equipment_esc_Status &msg)
 {
-
     switch(uav_type_)
     {
         case UavType::SINGLE:
