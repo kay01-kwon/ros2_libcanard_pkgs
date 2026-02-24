@@ -223,7 +223,7 @@ void Ros2Libcanard::handle_esc_status(const CanardRxTransfer &transfer,
                            const uavcan_equipment_esc_Status &msg)
 {
 
-    if(over_current_protection_ && msg.current > over_current_threshold_)
+    if(over_current_protection_ && fabs(msg.current) > over_current_threshold_)
     {
         is_over_current_ = true;
         RCLCPP_WARN(this->get_logger(),"Over current detected on ESC %d: %.2f A (threshold: %.1f A)",
