@@ -8,4 +8,4 @@
 
     # Over current protection
     over_current_protection: true
-    over_current_threshold: 20.0  # Ampere
+    over_current_threshold: 50.0  # Ampere
