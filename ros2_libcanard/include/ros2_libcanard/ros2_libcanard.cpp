@@ -97,7 +97,9 @@ Ros2Libcanard::Ros2Libcanard()
         throw std::runtime_error("Unsupported number of ESC");
     }
 
-    voltage_pub_ = this->create_publisher<Float64>("voltage", 
+    voltage_pub_ = this->create_publisher<Float64>("voltage",
+        rclcpp::SensorDataQoS());
+    actual_current_pub_ = this->create_publisher<ActualCurrent>("/uav/actual_current",
         rclcpp::SensorDataQoS());
 
     canard_process_timer_ = this->create_wall_timer(100us,
@@ -226,14 +228,17 @@ void Ros2Libcanard::handle_esc_status(const CanardRxTransfer &transfer,
         case UavType::SINGLE:
             single_actual_rpm_msg_.rpm = msg.rpm;
             single_actual_rpm_msg_.acceleration = 0;
+            actual_current_msg_.current[0] = msg.current;
             break;
         case UavType::QUAD:
             quad_actual_rpm_msg_.rpm[msg.esc_index] = msg.rpm;
             quad_actual_rpm_msg_.acceleration[msg.esc_index] = 0;
+            actual_current_msg_.current[msg.esc_index] = msg.current;
             break;
         case UavType::HEXA:
             hexa_actual_rpm_msg_.rpm[msg.esc_index] = msg.rpm;
             hexa_actual_rpm_msg_.acceleration[msg.esc_index] = 0;
+            actual_current_msg_.current[msg.esc_index] = msg.current;
             break;
         default:
             RCLCPP_ERROR(this->get_logger(),"Unsupported UAV type");
@@ -241,7 +246,7 @@ void Ros2Libcanard::handle_esc_status(const CanardRxTransfer &transfer,
     }
 
     esc_count_++;
-    
+
     if(esc_count_ == NUM_ESC_)
     {
         auto quad_broadcast_msg = QuadActualRpm();
@@ -256,7 +261,7 @@ void Ros2Libcanard::handle_esc_status(const CanardRxTransfer &transfer,
                 quad_actual_rpm_msg_.header.stamp = this->now();
                 quad_actual_rpm_pub_->publish(quad_actual_rpm_msg_);
                 break;
-            case UavType::HEXA:                
+            case UavType::HEXA:
                 hexa_actual_rpm_msg_.header.stamp = this->now();
                 hexa_actual_rpm_pub_->publish(hexa_actual_rpm_msg_);
                 break;
@@ -264,10 +269,14 @@ void Ros2Libcanard::handle_esc_status(const CanardRxTransfer &transfer,
                 RCLCPP_ERROR(this->get_logger(),"Unsupported UAV type");
                 return;
         }
-        
+
         // esc_cmd_pub_.broadcast(uavcan_cmd_msg_);
         voltage_msg_.data = msg.voltage;
         voltage_pub_->publish(voltage_msg_);
+
+        actual_current_msg_.header.stamp = this->now();
+        actual_current_pub_->publish(actual_current_msg_);
+
         esc_count_ = 0;
     }
 }

@@ -21,6 +21,7 @@
 
 #include "ros2_libcanard_msgs/msg/hexa_actual_rpm.hpp"
 #include "ros2_libcanard_msgs/msg/hexa_cmd_raw.hpp"
+#include "ros2_libcanard_msgs/msg/actual_current.hpp"
 #include "std_msgs/msg/float64.hpp"
 
 using namespace std::chrono_literals;
@@ -33,6 +34,7 @@ using ros2_libcanard_msgs::msg::QuadCmdRaw;
 
 using ros2_libcanard_msgs::msg::HexaActualRpm;
 using ros2_libcanard_msgs::msg::HexaCmdRaw;
+using ros2_libcanard_msgs::msg::ActualCurrent;
 using std_msgs::msg::Float64;
 
 enum class UavType
@@ -117,7 +119,8 @@ private:
     rclcpp::Publisher<HexaActualRpm>::SharedPtr hexa_cmd_raw_broadcast_pub_{nullptr};
 
     rclcpp::Publisher<Float64>::SharedPtr voltage_pub_{nullptr};
-    
+    rclcpp::Publisher<ActualCurrent>::SharedPtr actual_current_pub_{nullptr};
+
     SingleActualRpm single_actual_rpm_msg_;
 
     QuadActualRpm quad_actual_rpm_msg_;
@@ -125,7 +128,8 @@ private:
     HexaActualRpm hexa_actual_rpm_msg_;
     
     Float64 voltage_msg_;
-    
+    ActualCurrent actual_current_msg_;
+
     rclcpp::Subscription<SingleCmdRaw>::SharedPtr single_cmd_raw_sub_{nullptr};
     rclcpp::Subscription<QuadCmdRaw>::SharedPtr quad_cmd_raw_sub_{nullptr};
     rclcpp::Subscription<HexaCmdRaw>::SharedPtr hexa_cmd_raw_sub_{nullptr};
