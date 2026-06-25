@@ -14,6 +14,8 @@ Ros2Libcanard::Ros2Libcanard()
     this->declare_parameter("num_esc", NUM_ESC);
     this->declare_parameter("low_voltage_threshold", low_voltage_threshold_);
     this->declare_parameter("critical_voltage_threshold", critical_voltage_threshold_);
+    this->declare_parameter("over_current_protection", over_current_protection_);
+    this->declare_parameter("over_current_threshold", over_current_threshold_);
 
     // Get parameters from parameter server
     this->get_parameter("interface_name", interface_name);
@@ -25,6 +27,13 @@ Ros2Libcanard::Ros2Libcanard()
     printf("Number of ESC: %d\n", NUM_ESC);
     printf("Low voltage threshold: %.2f V\n", low_voltage_threshold_);
     printf("Critical voltage threshold: %.2f V\n", critical_voltage_threshold_);
+    this->get_parameter("over_current_protection", over_current_protection_);
+    this->get_parameter("over_current_threshold", over_current_threshold_);
+
+    printf("Interface: %s\n", interface_name.c_str());
+    printf("Number of ESC: %d\n", NUM_ESC);
+    printf("Over current protection: %s\n", over_current_protection_ ? "enabled" : "disabled");
+    printf("Over current threshold: %.1f A\n", over_current_threshold_);
 
     NUM_ESC_ = static_cast<uint8_t>(NUM_ESC);
     canard_interface_.init(interface_name.c_str());
@@ -62,27 +71,29 @@ Ros2Libcanard::Ros2Libcanard()
 
     for(size_t i = 0; i < NUM_ESC_; i++)
     {
+        // Initialize actual current message
+        actual_current_msg_.current[i] = 0.0;
+        // Turn on ESCs with a small command (10 out of 8191) to switch them to operational mode
         uavcan_cmd_msg_.cmd.data[i] = 10;
     }
+
     // By broadcasting cmd data to esc
     // switch to operational mode
     esc_cmd_pub_.broadcast(uavcan_cmd_msg_);
 
     if(NUM_ESC_ == 1)
     {
-        single_actual_rpm_pub_ = this->create_publisher<SingleActualRpm>("/uav/actual_rpm", 
+        single_actual_rpm_pub_ = this->create_publisher<SingleActualRpm>("/uav/actual_rpm",
             rclcpp::SensorDataQoS());
-        single_cmd_raw_broadcast_pub_ = this->create_publisher<SingleActualRpm>("/uav/broadcast", 1);
         single_cmd_raw_sub_ = this->create_subscription<SingleCmdRaw>("/uav/cmd_raw", 1,
             std::bind(&Ros2Libcanard::single_cmd_raw_callback, this, std::placeholders::_1));
-        
+
         uav_type_ = UavType::SINGLE;
     }
     else if(NUM_ESC_ == 4)
     {
-        quad_actual_rpm_pub_ = this->create_publisher<QuadActualRpm>("/uav/actual_rpm", 
+        quad_actual_rpm_pub_ = this->create_publisher<QuadActualRpm>("/uav/actual_rpm",
             rclcpp::SensorDataQoS());
-        quad_cmd_raw_broadcast_pub_ = this->create_publisher<QuadActualRpm>("/uav/broadcast", 1);
         quad_cmd_raw_sub_ = this->create_subscription<QuadCmdRaw>("/uav/cmd_raw", 1,
             std::bind(&Ros2Libcanard::quad_cmd_raw_callback, this, std::placeholders::_1));
 
@@ -90,9 +101,8 @@ Ros2Libcanard::Ros2Libcanard()
     }
     else if(NUM_ESC_ == 6)
     {
-        hexa_actual_rpm_pub_ = this->create_publisher<HexaActualRpm>("/uav/actual_rpm", 
+        hexa_actual_rpm_pub_ = this->create_publisher<HexaActualRpm>("/uav/actual_rpm",
             rclcpp::SensorDataQoS());
-        hexa_cmd_raw_broadcast_pub_ = this->create_publisher<HexaActualRpm>("/uav/broadcast", 1);
         hexa_cmd_raw_sub_ = this->create_subscription<HexaCmdRaw>("/uav/cmd_raw", 1,
             std::bind(&Ros2Libcanard::hexa_cmd_raw_callback, this, std::placeholders::_1));
         uav_type_ = UavType::HEXA;
@@ -103,7 +113,11 @@ Ros2Libcanard::Ros2Libcanard()
         throw std::runtime_error("Unsupported number of ESC");
     }
 
-    voltage_pub_ = this->create_publisher<Float64>("voltage", 
+    voltage_pub_ = this->create_publisher<Float64>("voltage",
+        rclcpp::SensorDataQoS());
+    actual_current_pub_ = this->create_publisher<ActualCurrent>("/uav/actual_current",
+        rclcpp::SensorDataQoS());
+    actual_current_pub_ = this->create_publisher<ActualCurrent>("/uav/current",
         rclcpp::SensorDataQoS());
 
     canard_process_timer_ = this->create_wall_timer(100us,
@@ -122,7 +136,7 @@ Ros2Libcanard::Ros2Libcanard()
 
 Ros2Libcanard::~Ros2Libcanard()
 {
-    
+
 }
 
 void Ros2Libcanard::process_canard()
@@ -133,11 +147,26 @@ void Ros2Libcanard::process_canard()
 void Ros2Libcanard::single_cmd_raw_callback(const ros2_libcanard_msgs::msg::SingleCmdRaw::SharedPtr msg)
 {
     uavcan_cmd_msg_.cmd.len = NUM_ESC_;
+
+    if(over_current_protection_ && is_over_current_)
+    {
+        set_cmd_msg_zero(1);
+        RCLCPP_WARN(this->get_logger(),"Over current detected - setting command to zero");
+        return;
+    }
+
     uavcan_cmd_msg_.cmd.data[0] = msg->cmd_raw;
 }
 
 void Ros2Libcanard::quad_cmd_raw_callback(const ros2_libcanard_msgs::msg::QuadCmdRaw::SharedPtr msg)
 {
+    if(over_current_protection_ && is_over_current_)
+    {
+        set_cmd_msg_zero(4);
+        RCLCPP_WARN(this->get_logger(),"Over current detected - setting command to zero");
+        return;
+    }
+
     uavcan_cmd_msg_.cmd.len = NUM_ESC_;
     for(int i = 0; i < NUM_ESC_; i++)
     {
@@ -147,6 +176,13 @@ void Ros2Libcanard::quad_cmd_raw_callback(const ros2_libcanard_msgs::msg::QuadCm
 
 void Ros2Libcanard::hexa_cmd_raw_callback(const ros2_libcanard_msgs::msg::HexaCmdRaw::SharedPtr msg)
 {
+    if(over_current_protection_ && is_over_current_)
+    {
+        set_cmd_msg_zero(6);
+        RCLCPP_WARN(this->get_logger(),"Over current detected - setting command to zero");
+        return;
+    }
+
     uavcan_cmd_msg_.cmd.len = NUM_ESC_;
     for(int i = 0; i < NUM_ESC_; i++)
     {
@@ -170,6 +206,7 @@ void Ros2Libcanard::start_raw_cmd_timer()
 
 void Ros2Libcanard::raw_cmd_timer_callback()
 {
+
     bool success = esc_cmd_pub_.broadcast(uavcan_cmd_msg_);
 
     if(!success)
@@ -189,58 +226,35 @@ void Ros2Libcanard::raw_cmd_timer_callback()
         }
     }
 
-    auto single_broadcast_msg = SingleActualRpm();
-    auto quad_broadcast_msg = QuadActualRpm();
-    auto hexa_broadcast_msg = HexaActualRpm();
-
-    switch(uav_type_)
-    {
-        case UavType::SINGLE:
-
-            single_broadcast_msg.header.stamp = this->now();
-            single_broadcast_msg.rpm = uavcan_cmd_msg_.cmd.data[0]*9800.0/8191.0;
-            single_cmd_raw_broadcast_pub_->publish(single_broadcast_msg);
-            break;
-        case UavType::QUAD:
-            quad_broadcast_msg.header.stamp = this->now();
-            for(size_t i = 0; i < NUM_ESC_; i++)
-            {
-                quad_broadcast_msg.rpm[i] = uavcan_cmd_msg_.cmd.data[i]*9800.0/8191.0;
-            }
-            quad_cmd_raw_broadcast_pub_->publish(quad_broadcast_msg);
-            break;
-        case UavType::HEXA:
-            hexa_broadcast_msg.header.stamp = this->now();
-            for(size_t i = 0; i < NUM_ESC_; i++)
-            {
-                hexa_broadcast_msg.rpm[i] = uavcan_cmd_msg_.cmd.data[i]*9800.0/8191.0;
-            }
-            hexa_cmd_raw_broadcast_pub_->publish(hexa_broadcast_msg);
-            break;
-        default:
-            RCLCPP_ERROR(this->get_logger(),"Unsupported UAV type");
-            return;
-    }
-
 }
 
 void Ros2Libcanard::handle_esc_status(const CanardRxTransfer &transfer,
                            const uavcan_equipment_esc_Status &msg)
 {
 
+    if(over_current_protection_ && fabs(msg.current) > over_current_threshold_)
+    {
+        is_over_current_ = true;
+        RCLCPP_WARN(this->get_logger(),"Over current detected on ESC %d: %.2f A (threshold: %.1f A)",
+            msg.esc_index, msg.current, over_current_threshold_);
+    }
+
     switch(uav_type_)
     {
         case UavType::SINGLE:
             single_actual_rpm_msg_.rpm = msg.rpm;
             single_actual_rpm_msg_.acceleration = 0;
+            actual_current_msg_.current[0] = msg.current;
             break;
         case UavType::QUAD:
             quad_actual_rpm_msg_.rpm[msg.esc_index] = msg.rpm;
             quad_actual_rpm_msg_.acceleration[msg.esc_index] = 0;
+            actual_current_msg_.current[msg.esc_index] = msg.current;
             break;
         case UavType::HEXA:
             hexa_actual_rpm_msg_.rpm[msg.esc_index] = msg.rpm;
             hexa_actual_rpm_msg_.acceleration[msg.esc_index] = 0;
+            actual_current_msg_.current[msg.esc_index] = msg.current;
             break;
         default:
             RCLCPP_ERROR(this->get_logger(),"Unsupported UAV type");
@@ -248,11 +262,9 @@ void Ros2Libcanard::handle_esc_status(const CanardRxTransfer &transfer,
     }
 
     esc_count_++;
-    
+
     if(esc_count_ == NUM_ESC_)
     {
-        auto quad_broadcast_msg = QuadActualRpm();
-        auto hexa_broadcast_msg = HexaActualRpm();
         switch(uav_type_)
         {
             case UavType::SINGLE:
@@ -263,7 +275,7 @@ void Ros2Libcanard::handle_esc_status(const CanardRxTransfer &transfer,
                 quad_actual_rpm_msg_.header.stamp = this->now();
                 quad_actual_rpm_pub_->publish(quad_actual_rpm_msg_);
                 break;
-            case UavType::HEXA:                
+            case UavType::HEXA:
                 hexa_actual_rpm_msg_.header.stamp = this->now();
                 hexa_actual_rpm_pub_->publish(hexa_actual_rpm_msg_);
                 break;
@@ -271,13 +283,15 @@ void Ros2Libcanard::handle_esc_status(const CanardRxTransfer &transfer,
                 RCLCPP_ERROR(this->get_logger(),"Unsupported UAV type");
                 return;
         }
-        
+
         // esc_cmd_pub_.broadcast(uavcan_cmd_msg_);
         voltage_msg_.data = msg.voltage;
         voltage_pub_->publish(voltage_msg_);
 
         // Check voltage and update state
         check_voltage_and_update_state(msg.voltage);
+        actual_current_msg_.header.stamp = this->now();
+        actual_current_pub_->publish(actual_current_msg_);
 
         esc_count_ = 0;
     }
@@ -384,4 +398,11 @@ void Ros2Libcanard::apply_emergency_landing()
     RCLCPP_WARN_THROTTLE(this->get_logger(), *this->get_clock(), 1000,
         "Emergency landing in progress - Current voltage: %.2fV, Reducing ESC commands",
         current_voltage_);
+}
+void Ros2Libcanard::set_cmd_msg_zero(int num_esc)
+{
+    for(size_t i = 0; i < num_esc; i++)
+    {
+        uavcan_cmd_msg_.cmd.data[i] = 0;
+    }
 }

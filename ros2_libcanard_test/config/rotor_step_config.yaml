@@ -1,0 +1,15 @@
+/**:
+  ros__parameters:
+    # Rotor speed step control parameters
+    initial_rpm: 2000.0       # RPM - Starting/baseline rotor speed
+    step_rpm: 4000.0          # RPM - Step up rotor speed
+    step_start_time: 5.0      # seconds - When to jump to step_rpm
+    hold_duration: 10.0       # seconds - How long to hold at step_rpm
+    end_time: 20.0            # seconds - When to stop the test
+
+    # Drone model configuration (SINGLE, QUAD, or HEXA)
+    drone_model: "HEXA"
+
+    # ESC parameters
+    max_bit: 8191.0           # Maximum command bit value
+    max_rpm: 9800.0           # Maximum RPM capability of ESC

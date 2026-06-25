@@ -12,6 +12,9 @@ set(esc_test_src
   include/mode/rc_mode_checker.cpp
   include/node/esc_test.cpp
   include/node/epos4_test.cpp
+  include/node/rotor_ramp_test.cpp
+  include/node/rotor_sinusoidal_test.cpp
+  include/node/rotor_step_test.cpp
 )
 
 if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
@@ -62,8 +65,41 @@ target_link_libraries(
   esc_test_lib
 )
 
+# Rotor Ramp Test Node
+add_executable(
+  rotor_ramp_test_node
+  src/rotor_ramp_test_node.cpp
+)
+
+target_link_libraries(
+  rotor_ramp_test_node
+  esc_test_lib
+)
+
+# Rotor Sinusoidal Test Node
+add_executable(
+  rotor_sinusoidal_test_node
+  src/rotor_sinusoidal_test_node.cpp
+)
+
+target_link_libraries(
+  rotor_sinusoidal_test_node
+  esc_test_lib
+)
+
+# Rotor Step Test Node
+add_executable(
+  rotor_step_test_node
+  src/rotor_step_test_node.cpp
+)
+
+target_link_libraries(
+  rotor_step_test_node
+  esc_test_lib
+)
+
 install(
-  TARGETS esc_test_node epos4_test_node
+  TARGETS esc_test_node epos4_test_node rotor_ramp_test_node rotor_sinusoidal_test_node rotor_step_test_node
   DESTINATION lib/${PROJECT_NAME}
 )
 

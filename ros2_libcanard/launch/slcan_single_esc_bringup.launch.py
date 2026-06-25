@@ -9,7 +9,7 @@ def generate_launch_description():
 
     ros2_libcanard_pkg_share = get_package_share_directory('ros2_libcanard')
 
-    config_file_path = os.path.join(ros2_libcanard_pkg_share, 'config', 'esc_config.yaml')
+    config_file_path = os.path.join(ros2_libcanard_pkg_share, 'config', 'slcan_single_esc_config.yaml')
     print(f"Using configuration file: {config_file_path}")
 
     esc_bringup_node = Node(
